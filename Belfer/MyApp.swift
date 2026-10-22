@@ -4,9 +4,10 @@ import SwiftUI
 @main
 struct BelferApp: App {
     @StateObject private var store = WorkspaceStore()
+    @StateObject private var runner = ActionRunner()
     var body: some Scene {
         WindowGroup("Belfer") {
-            ContentView().environmentObject(store)
+            ContentView().environmentObject(store).environmentObject(runner)
                 .frame(minWidth: 1060, minHeight: 700)
                 .tint(.indigo)
         }

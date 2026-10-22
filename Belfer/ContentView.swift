@@ -3,7 +3,7 @@ import SwiftUI
 import AppKit
 
 enum Destination: String, CaseIterable, Identifiable {
-    case today = "Dzisiaj", week = "Tydzień", classes = "Klasy", topics = "Rozkłady", materials = "Materiały", inbox = "Do zrobienia", settings = "Ustawienia"
+    case today = "Dzisiaj", week = "Tydzień", classes = "Klasy", topics = "Rozkłady", materials = "Materiały", launch = "Uruchamianie", inbox = "Do zrobienia", settings = "Ustawienia"
     var id: String { rawValue }
     var symbol: String {
         switch self {
@@ -12,6 +12,7 @@ enum Destination: String, CaseIterable, Identifiable {
         case .classes: return "person.3"
         case .topics: return "list.bullet.rectangle"
         case .materials: return "folder"
+        case .launch: return "play.circle"
         case .inbox: return "checklist"
         case .settings: return "gearshape"
         }
@@ -19,6 +20,7 @@ enum Destination: String, CaseIterable, Identifiable {
 }
 struct ContentView: View {
     @EnvironmentObject private var store: WorkspaceStore
+    @EnvironmentObject private var runner: ActionRunner
     @State private var destination: Destination? = .today
     @State private var date = Date()
     @State private var selectedLesson: UUID?
@@ -73,6 +75,7 @@ struct ContentView: View {
                             case .classes: ClassesView(editing: $editing)
                             case .topics: TopicsView(editing: $editing)
                             case .materials: LibraryView()
+                            case .launch: LaunchActionsView()
                             case .inbox: TasksView(editing: $editing)
                             case .settings: SettingsView()
                             }
@@ -90,6 +93,7 @@ struct ContentView: View {
             case .slot(let item): SlotEditor(item: item)
             }
         }
+        .sheet(isPresented: $runner.showingOutput) { ActionOutputView() }
         .alert("Belfer", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK") { store.error = nil }
         } message: { Text(store.error ?? "") }
@@ -107,6 +111,20 @@ struct ContentView: View {
                 Button("Przygotuj jutro", systemImage: "sun.max") { selectDay(Calendar.current.date(byAdding: .day, value: 1, to: Date())!) }
                 Spacer()
                 DatePicker("Dzień", selection: $date, displayedComponents: .date).fixedSize()
+            }
+            if !store.data.actions.filter({ $0.pinned }).isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Szybkie uruchamianie").font(.headline)
+                        Spacer()
+                        if runner.busy { ProgressView().controlSize(.small); Text(runner.currentName).font(.caption) }
+                        Button("Wynik") { runner.showingOutput = true }
+                        Button("Zarządzaj") { destination = .launch }
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 190))], alignment: .leading, spacing: 10) {
+                        ForEach(store.data.actions.filter { $0.pinned }) { RunActionButton(action: $0) }
+                    }
+                }.panel()
             }
             let lessons = store.data.lessons(on: date)
             HStack(spacing: 16) {
