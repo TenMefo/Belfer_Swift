@@ -1,0 +1,26 @@
+name: macOS build and tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Tests
+        run: swift test
+      - name: Package application
+        run: bash scripts/build-app.sh
+      - name: Xcode project build
+        run: xcodebuild -project Belfer.xcodeproj -scheme MyApp -destination 'platform=macOS' -derivedDataPath build/xcode CODE_SIGNING_ALLOWED=NO build
+      - name: Archive app
+        run: ditto -c -k --sequesterRsrc --keepParent build/Belfer.app build/Belfer-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Belfer-macOS
+          path: build/Belfer-macOS.zip
