@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import AppKit
 import QuickLook
@@ -40,7 +41,7 @@ struct LessonDetail: View {
     @State private var finish = false
     @State private var nextSteps = ""
     @State private var delete = false
-    @State private var teaching = false
+    @Environment(\.openWindow) private var openWindow
     @State private var preview: URL?
 
     var body: some View {
@@ -79,7 +80,7 @@ struct LessonDetail: View {
                 }
                 HStack {
                     Button("Otwórz materiały uczniów", systemImage: "arrow.up.right.square") { store.openStudentMaterials(materials) }.disabled(materials.filter { !$0.teacherOnly }.isEmpty)
-                    Button("Tryb lekcji", systemImage: "play.rectangle") { teaching = true }
+                    Button("Tryb lekcji", systemImage: "play.rectangle") { openWindow(id: "teaching", value: lesson.id) }
                 }
                 if !lesson.notes.isEmpty { detailSection("Notatki nauczyciela", text: lesson.notes) }
                 if !lesson.nextSteps.isEmpty { detailSection("Co dalej", text: lesson.nextSteps) }
@@ -110,9 +111,6 @@ struct LessonDetail: View {
                             }.buttonStyle(.borderedProminent)
                         }
                     }.padding(28).frame(width: 580, height: 340)
-                }
-                .sheet(isPresented: $teaching) {
-                    TeachingView(title: store.data.title(lesson), exercise: topic?.exercise ?? "", resources: materials.filter { !$0.teacherOnly })
                 }
                 .confirmationDialog("Usunąć ten termin lekcji? Temat i jego materiały zostaną zachowane.", isPresented: $delete) {
                     Button("Usuń lekcję", role: .destructive) { store.change { $0.lessons.removeAll { $0.id == id } } }
@@ -150,9 +148,10 @@ struct TeachingView: View {
     var title: String
     var exercise: String
     var resources: [Resource]
+    var close: (() -> Void)? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            HStack { Label("Lekcja", systemImage: "play.rectangle").foregroundStyle(.indigo); Spacer(); Button("Zamknij") { dismiss() } }
+            HStack { Label("Lekcja", systemImage: "play.rectangle").foregroundStyle(.indigo); Spacer(); Button("Zamknij") { if let close { close() } else { dismiss() } } }
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text(title).font(.system(size: 38, weight: .bold, design: .rounded))
@@ -163,5 +162,23 @@ struct TeachingView: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
         }.padding(36).frame(minWidth: 850, minHeight: 620)
+    }
+}
+
+struct TeachingWindow: View {
+    @EnvironmentObject var store: WorkspaceStore
+    @Environment(\.dismissWindow) private var dismissWindow
+    var id: UUID
+    var body: some View {
+        if let lesson = store.data.lessons.first(where: { $0.id == id }) {
+            TeachingView(
+                title: store.data.title(lesson),
+                exercise: store.data.topics.first(where: { $0.id == lesson.topicID })?.exercise ?? "",
+                resources: store.data.materials(lesson).filter { !$0.teacherOnly },
+                close: { dismissWindow(id: "teaching", value: id) }
+            )
+        } else {
+            EmptyPanel(title: "Lekcja nie jest już dostępna", message: "Termin został usunięty. Możesz zamknąć to okno.")
+        }
     }
 }

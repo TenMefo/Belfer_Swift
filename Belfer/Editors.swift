@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 // Formularze pracują na kopii. Anulowanie nie zmienia zapisanych danych.
@@ -168,6 +169,11 @@ struct ResourceListEditor: View {
                 Button("Przypnij plik") { if let item = store.pickResource() { resources.append(item) } }
                 Button("Przypnij projekt") { if let item = store.pickResource(project: true) { resources.append(item) } }
                 Button("Dodaj link") { editing = Resource(kind: .website) }
+                Menu("Z biblioteki") {
+                    ForEach(allResources(store.data).filter { item in !resources.contains(where: { $0.id == item.id }) }) { item in
+                        Button(item.name) { resources.append(item) }
+                    }
+                }.fixedSize().disabled(allResources(store.data).isEmpty)
             }
         }.sheet(item: $editing) { item in
             ResourceEditor(item: item) { resources.upsert($0) }

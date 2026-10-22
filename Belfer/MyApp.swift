@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 @main
@@ -15,6 +16,10 @@ struct BelferApp: App {
                 Button("Szukaj w kokpicie") { NotificationCenter.default.post(name: .belferSearch, object: nil) }.keyboardShortcut("k")
             }
         }
+        WindowGroup("Lekcja", id: "teaching", for: UUID.self) { $lessonID in
+            if let lessonID { TeachingWindow(id: lessonID).environmentObject(store).tint(.indigo) }
+        }
+        .defaultSize(width: 1000, height: 720)
     }
 }
 extension Notification.Name { static let belferSearch = Notification.Name("belfer.search") }

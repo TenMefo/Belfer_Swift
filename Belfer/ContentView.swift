@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import AppKit
 
@@ -117,7 +118,7 @@ struct ContentView: View {
                 EmptyPanel(title: "Zacznij od swojej pierwszej klasy", message: "Dodaj klasę, utwórz temat i zaplanuj lekcję. Możesz też wczytać przykładowy kokpit.", symbol: "graduationcap")
                 HStack {
                     Button("Dodaj klasę") { editing = .schoolClass(SchoolClass()) }.buttonStyle(.borderedProminent)
-                    Button("Zobacz przykład") { _ = store.change { $0 = .demo() } }
+                    if store.data == Workspace() { Button("Zobacz przykład") { _ = store.change { $0 = .demo() } } }
                 }
             } else if lessons.isEmpty {
                 EmptyPanel(title: "W tym dniu nie ma jeszcze zajęć", message: "Dodaj lekcję albo wypełnij tydzień ze stałego planu.", symbol: "calendar.badge.plus")

@@ -53,7 +53,7 @@ Dane przykładowe są ilustracją działania; aplikacja nie pobiera Twoich rzecz
 - Podgląd obsługiwanych dokumentów przez Quick Look i otwieranie w programach domyślnych.
 - Rozmowy ChatGPT/Gemini, strony, wiadomości: własne nazwy, linki i instrukcje.
 - „Tylko dla nauczyciela”: materiał pomijany przez zbiorcze otwieranie i tryb lekcji. Nie jest to szyfrowanie ani kontrola dostępu do pliku.
-- Tryb lekcji z dużym poleceniem i materiałami uczniów. To widok modalny; przy udostępnianiu ekranu zadbaj, by nie pokazywać kokpitu z notatkami w tle. Oddzielne okno projektora jest na liście dalszych prac.
+- Tryb lekcji w osobnym oknie z dużym poleceniem i materiałami uczniów. Możesz przeciągnąć to okno na projektor albo udostępniać tylko to okno. Kokpit zachowuje prywatne notatki.
 - Zadania/pomysły, przypisanie do klasy, terminy, oznaczanie jako wykonane.
 - Wyszukiwanie `⌘K` w klasach, tematach, lekcjach, notatkach, zadaniach i nazwach/instrukcjach zasobów. Wyszukiwarka nie indeksuje wnętrza plików.
 - Kopiowanie tematu do Librusa i polecenia dla uczniów.
@@ -113,4 +113,4 @@ Workflow `.github/workflows/macos.yml` sprawdza testy, kompilację Swift Package
 - `Belfer/*Views.swift`, `ContentView.swift`, `Editors.swift` — interfejs SwiftUI.
 - `Tests/BelferTests/` — parser, plan tygodnia, kolizje, powiązania i odporność zapisu.
 
-Dalszy plan: osobne okno projektora; bezpośredni Excel z mapowaniem kolumn i różnicami; kalendarz/święta/wyjątki; uruchamianie wybranego edytora; dopiero po weryfikacji możliwości dostawców odczyt poczty i Librusa. Te funkcje nie są oznaczane jako działające w obecnej wersji.
+Dalszy plan: bezpośredni Excel z mapowaniem kolumn i różnicami; kalendarz/święta/wyjątki; uruchamianie wybranego edytora; dopiero po weryfikacji możliwości dostawców odczyt poczty i Librusa. Te funkcje nie są oznaczane jako działające w obecnej wersji.
