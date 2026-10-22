@@ -74,7 +74,7 @@ JSX i komponenty;Tworzenie aplikacji webowych;2
 
 Import **dodaje nowe tematy**, nie nadpisuje istniejących. Zmiany rozkładu edytuj w aplikacji. Bezpośredni import `.xlsx`, mapowanie dowolnych kolumn i porównywanie wersji nie są jeszcze zaimplementowane.
 
-## Integracje — rzeczywisty zakres wersji 0.1
+## Integracje — rzeczywisty zakres wersji 0.2
 
 | Narzędzie | Co działa |
 | --- | --- |
@@ -82,7 +82,7 @@ Import **dodaje nowe tematy**, nie nadpisuje istniejących. Zmiany rozkładu edy
 | ChatGPT / Gemini | Prywatne linki do rozmów otwierane w przeglądarce. Bez pobierania historii ani generowania AI. |
 | Poczta | `mailto:`, `message:` oraz pliki `.eml`. Bez pobierania skrzynki. |
 | Excel | Import CSV UTF-8. Bez odczytu `.xlsx`. |
-| Projekty | Otwieranie folderów w Finderze, plików w domyślnych programach i zapis instrukcji. Bez wykonywania komend. |
+| Projekty | Otwieranie folderu w wybranej aplikacji, np. VS Code, oraz przypinane polecenia z argumentami. |
 
 Nie potrzebujesz publicznego linku do rozmowy — przypnij jej zwykły adres i korzystaj z zalogowanej przeglądarki. Dla wiadomości Apple Mail można przypiąć adres `message:` z identyfikatorem wiadomości; inne aplikacje mogą go nie obsługiwać.
 
@@ -95,7 +95,7 @@ Dane trafiają do `~/Library/Application Support/Belfer/workspace.json`. Po każ
 - Kopie JSON zawierają notatki, ścieżki i zakładki plików, więc przechowuj je jak własne materiały nauczyciela.
 - Prezentacje i projekty pozostają poza kopią — wykonuj również ich backup.
 - Aplikacja desktopowa działa bez App Sandbox, aby oba sposoby uruchamiania miały jednakowy dostęp do wskazanych zasobów. Materiałów nie wysyła na serwer; otwieranie zewnętrznych linków odbywa się przez domyślne aplikacje.
-- Wersja 0.1 jest przeznaczona do jednego procesu aplikacji naraz; jednoczesne uruchomienie kilku kopii nie ma mechanizmu scalania zmian.
+- Wersja 0.2 jest przeznaczona do jednego procesu aplikacji naraz; jednoczesne uruchomienie kilku kopii nie ma mechanizmu scalania zmian.
 
 ## Rozwój i sprawdzanie
 
@@ -113,4 +113,25 @@ Workflow `.github/workflows/macos.yml` sprawdza testy, kompilację Swift Package
 - `Belfer/*Views.swift`, `ContentView.swift`, `Editors.swift` — interfejs SwiftUI.
 - `Tests/BelferTests/` — parser, plan tygodnia, kolizje, powiązania i odporność zapisu.
 
-Dalszy plan: bezpośredni Excel z mapowaniem kolumn i różnicami; kalendarz/święta/wyjątki; uruchamianie wybranego edytora; dopiero po weryfikacji możliwości dostawców odczyt poczty i Librusa. Te funkcje nie są oznaczane jako działające w obecnej wersji.
+Dalszy plan: bezpośredni Excel z mapowaniem kolumn i różnicami; kalendarz/święta/wyjątki; dopiero po weryfikacji możliwości dostawców odczyt poczty i Librusa. Te funkcje nie są oznaczane jako działające w obecnej wersji.
+
+## Uruchamianie aplikacji, VS Code i XAMPP (0.2)
+
+**Uruchamianie → Dodaj przyciski XAMPP** dodaje cztery przypięcia: **Uruchom**, **Zatrzymaj**, **Restartuj**, **Status**. Domyślny program to `/Applications/XAMPP/xamppfiles/xampp`. Jeśli Twoja instalacja ma inną lokalizację, zmień ją w edycji każdej akcji. Dotyczy to klasycznej instalacji XAMPP na macOS; XAMPP-VM wymaga innego sposobu sterowania. Preset nie instaluje XAMPP ani nie zmienia konfiguracji serwerów.
+
+Start/stop/restart używają systemowego okna uprawnień administratora przez AppleScript. **Nie wpisuj `sudo` w polu programu ani argumentów**. Belfer nie prosi o hasło w swoim formularzu i go nie zapisuje. Anulowanie systemowego okna jest pokazywane jako nieudane wykonanie polecenia. Status domyślnie działa bez podwyższonych uprawnień; możesz je włączyć, jeżeli Twoja instalacja ich wymaga.
+
+**Dodaj VS Code** → wybierz `Visual Studio Code.app` i folder projektu → zapisz. Uruchomienie korzysta z macOS `open`, więc instalacja polecenia `code` w terminalu nie jest wymagana. Możesz przypiąć również inną aplikację `.app`.
+
+Przypięcia można:
+- pokazać jako przyciski na kokpicie;
+- powiązać ze wspólnym tematem albo konkretnym terminem lekcji;
+- włączyć **Uruchamiaj razem z otwieraniem materiałów lekcji**.
+
+W karcie lekcji sekcja **Środowisko lekcji → Dodaj akcję** pozwala szybko przygotować VS Code z folderem oraz start/stop XAMPP. Dla startu XAMPP i VS Code ta ścieżka domyślnie włącza dołączenie do materiałów; dla zatrzymania pozostawia oddzielny przycisk. Przyciski zestawu wykonują pasujące akcje w kolejności ich dodania, po czym otwierają materiały. Pierwszy błąd przerywa zestaw. Samo przypięcie na kokpicie nie dołącza akcji do lekcji. Brak powiązania przy włączonej opcji „razem z materiałami” oznacza wszystkie lekcje.
+
+Własne polecenia mają osobne pola **program**, **argumenty (jeden na wiersz)** i **folder roboczy**. Program musi mieć pełną ścieżkę. Zwykłe argumenty są przekazywane bez interpretacji powłoki. Dla celowego użycia operatorów takich jak `&&` wybierz `/bin/zsh`, wpisz `-lc` w pierwszym wierszu argumentów, a całą treść polecenia w drugim. Nie zapisuj w poleceniach haseł ani tokenów.
+
+**Wynik** pokazuje kod zakończenia, standardowe wyjście i błędy z bieżącej sesji. Kod 0 oznacza zakończenie polecenia; nie jest ciągłym monitoringiem usług. Użyj **Status XAMPP**, aby sprawdzić serwery. Działanie XAMPP zależy od zainstalowanej wersji i dostępności portów. Polecenia mają limit 3 minut; po przekroczeniu limitu sprawdź stan usług, ponieważ zatrzymanie procesu uruchamiającego nie musi zatrzymać serwera. Nie używaj tych akcji do procesów wymagających stałego interaktywnego terminala, np. `npm run dev` na pierwszym planie.
+
+Akcje nie uruchamiają się przy starcie Belfra, imporcie kopii ani zakończeniu lekcji. XAMPP zatrzymujesz osobnym przyciskiem. Polecenia i ich przypięcia są zapisywane w kopii JSON. Kopie 0.1 bez akcji nadal się otwierają; do kopii 0.2 używaj nowej wersji aplikacji, ponieważ stara aplikacja nie zachowa nowych pól.

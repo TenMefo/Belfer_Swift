@@ -121,6 +121,8 @@ struct ClassesView: View {
             Button("Usuń klasę i jej terminy", role: .destructive) {
                 if let id = deleting?.id {
                     store.change {
+                        let removedLessons = Set($0.lessons.filter { $0.classID == id }.map(\.id))
+                        for index in $0.actions.indices where $0.actions[index].lessonID.map({ removedLessons.contains($0) }) == true { $0.actions[index].lessonID = nil; $0.actions[index].withMaterials = false }
                         $0.classes.removeAll { $0.id == id }; $0.lessons.removeAll { $0.classID == id }; $0.slots.removeAll { $0.classID == id }
                         for index in $0.tasks.indices where $0.tasks[index].classID == id { $0.tasks[index].classID = nil }
                     }
@@ -170,6 +172,7 @@ struct TopicsView: View {
             Button("Usuń temat", role: .destructive) {
                 if let id = deleting?.id {
                     store.change {
+                        for index in $0.actions.indices where $0.actions[index].topicID == id { $0.actions[index].topicID = nil; $0.actions[index].withMaterials = false }
                         $0.topics.removeAll { $0.id == id }
                         for index in $0.lessons.indices where $0.lessons[index].topicID == id { $0.lessons[index].topicID = nil; if $0.lessons[index].status == .ready { $0.lessons[index].status = .planned } }
                     }

@@ -36,6 +36,8 @@ struct LessonRow: View {
 }
 struct LessonDetail: View {
     @EnvironmentObject var store: WorkspaceStore
+    @EnvironmentObject var runner: ActionRunner
+    @State private var editingAction: LaunchAction?
     var id: UUID
     var edit: (Lesson) -> Void
     @State private var finish = false
@@ -79,8 +81,40 @@ struct LessonDetail: View {
                     }
                 }
                 HStack {
-                    Button("Otwórz materiały uczniów", systemImage: "arrow.up.right.square") { store.openStudentMaterials(materials) }.disabled(materials.filter { !$0.teacherOnly }.isEmpty)
+                    Button("Otwórz materiały uczniów", systemImage: "arrow.up.right.square") {
+                        runner.run(store.data.actions(for: lesson).filter { $0.withMaterials }) { store.openStudentMaterials(materials) }
+                    }.disabled(runner.busy || (materials.filter { !$0.teacherOnly }.isEmpty && !store.data.actions(for: lesson).contains { $0.withMaterials }))
                     Button("Tryb lekcji", systemImage: "play.rectangle") { openWindow(id: "teaching", value: lesson.id) }
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Środowisko lekcji").font(.headline)
+                        Spacer()
+                        Menu("Dodaj akcję") {
+                            Button("VS Code i folder projektu…") {
+                                var action = LaunchAction.vscode(); action.lessonID = lesson.id; action.withMaterials = true
+                                editingAction = action
+                            }
+                            Button("Start XAMPP…") {
+                                var action = LaunchAction.xampp("start"); action.lessonID = lesson.id; action.withMaterials = true
+                                editingAction = action
+                            }
+                            Button("Zatrzymaj XAMPP…") {
+                                var action = LaunchAction.xampp("stop"); action.lessonID = lesson.id
+                                editingAction = action
+                            }
+                            Button("Własna akcja…") { var action = LaunchAction(); action.lessonID = lesson.id; editingAction = action }
+                        }.fixedSize()
+                    }
+                    ForEach(store.data.actions(for: lesson)) { action in
+                        HStack {
+                            RunActionButton(action: action)
+                            if action.withMaterials { Text("razem z materiałami").font(.caption).foregroundStyle(.secondary) }
+                            Spacer()
+                            Button("Edytuj") { editingAction = action }
+                        }
+                    }
+                    if runner.busy { ProgressView("\(runner.currentName)…").controlSize(.small) }
                 }
                 if !lesson.notes.isEmpty { detailSection("Notatki nauczyciela", text: lesson.notes) }
                 if !lesson.nextSteps.isEmpty { detailSection("Co dalej", text: lesson.nextSteps) }
@@ -97,6 +131,7 @@ struct LessonDetail: View {
                 }
             }.panel()
                 .quickLookPreview($preview)
+                .sheet(item: $editingAction) { LaunchActionEditor(item: $0) }
                 .sheet(isPresented: $finish) {
                     VStack(alignment: .leading, spacing: 18) {
                         Text("Na czym skończyliście?").font(.title2.bold())
@@ -113,7 +148,7 @@ struct LessonDetail: View {
                     }.padding(28).frame(width: 580, height: 340)
                 }
                 .confirmationDialog("Usunąć ten termin lekcji? Temat i jego materiały zostaną zachowane.", isPresented: $delete) {
-                    Button("Usuń lekcję", role: .destructive) { store.change { $0.lessons.removeAll { $0.id == id } } }
+                    Button("Usuń lekcję", role: .destructive) { store.change { data in data.lessons.removeAll { $0.id == id }; for i in data.actions.indices where data.actions[i].lessonID == id { data.actions[i].lessonID = nil; data.actions[i].withMaterials = false } } }
                 }
         }
     }

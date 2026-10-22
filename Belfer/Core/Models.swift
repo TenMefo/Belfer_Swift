@@ -97,6 +97,12 @@ struct Workspace: Codable, Equatable {
     var tasks: [WorkItem] = []
     var slots: [WeeklySlot] = []
     var resources: [Resource] = []
+    // Pole opcjonalne pozwala odczytać również kopie z wersji 0.1.
+    var launchActions: [LaunchAction]?
+    var actions: [LaunchAction] {
+        get { launchActions ?? [] }
+        set { launchActions = newValue }
+    }
 
     func className(_ id: UUID) -> String { classes.first { $0.id == id }?.name ?? "Usunięta klasa" }
     func title(_ lesson: Lesson) -> String { topics.first { $0.id == lesson.topicID }?.title ?? "Wybierz temat" }
@@ -141,7 +147,15 @@ struct Workspace: Codable, Equatable {
               slots.allSatisfy({ classIDs.contains($0.classID) && (1...7).contains($0.weekday) && (0...23).contains($0.hour) && (0...59).contains($0.minute) && (5...480).contains($0.duration) }),
               tasks.allSatisfy({ $0.classID == nil || classIDs.contains($0.classID!) })
         else { throw DataError.invalid("Nieprawidłowe dane lub brakujące powiązania w kopii.") }
+        guard unique(actions), actions.allSatisfy({ action in
+            (action.topicID == nil || topicIDs.contains(action.topicID!)) &&
+            (action.lessonID == nil || lessons.contains(where: { $0.id == action.lessonID }))
+        }) else { throw DataError.invalid("Nieprawidłowe powiązania akcji uruchamiania.") }
+        for action in actions { try action.validate() }
         return self
+    }
+    func actions(for lesson: Lesson) -> [LaunchAction] {
+        actions.filter { $0.lessonID == lesson.id || ($0.topicID != nil && $0.topicID == lesson.topicID) || ($0.topicID == nil && $0.lessonID == nil && $0.withMaterials) }
     }
     static func demo(now: Date = Date()) -> Workspace {
         let web = SchoolClass(name: "4TI", subject: "Tworzenie stron i aplikacji internetowych", qualification: "INF.03")

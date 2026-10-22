@@ -152,16 +152,16 @@ struct SettingsView: View {
                 LabeledContent("ChatGPT / Gemini", value: "Prywatne odnośniki do konkretnych rozmów")
                 LabeledContent("Poczta", value: "Linki mailto: / message: lub przypięte pliki .eml")
                 LabeledContent("Excel", value: "Import tematów przez CSV UTF-8")
-                Text("Treści rozmów i skrzynki nie są pobierane automatycznie. Aplikacja nie uruchamia poleceń z instrukcji projektów. Pliki otwierają się w domyślnych programach macOS.").font(.caption).foregroundStyle(.secondary)
+                Text("Treści rozmów i skrzynki nie są pobierane automatycznie. Polecenia uruchomisz przez jawnie skonfigurowane akcje w zakładce Uruchamianie. Pliki otwierają się w domyślnych programach macOS.").font(.caption).foregroundStyle(.secondary)
             }.panel()
             VStack(alignment: .leading, spacing: 14) {
                 Label("Pierwsze kroki", systemImage: "sparkles").font(.title3.bold())
                 Text("1. Dodaj klasy i przedmioty.\n2. Dodaj tematy lub zaimportuj CSV.\n3. Utwórz stały plan i wypełnij tydzień.\n4. Przypisz tematy i materiały do lekcji.\n5. Wieczorem kliknij „Przygotuj jutro”.\n6. Po zajęciach zapisz, na czym skończyliście.")
-                if store.data.classes.isEmpty && store.data.topics.isEmpty && store.data.lessons.isEmpty && store.data.tasks.isEmpty && store.data.resources.isEmpty && store.data.slots.isEmpty && !store.locked {
+                if store.data.classes.isEmpty && store.data.topics.isEmpty && store.data.lessons.isEmpty && store.data.tasks.isEmpty && store.data.resources.isEmpty && store.data.slots.isEmpty && store.data.actions.isEmpty && !store.locked {
                     Button("Wczytaj przykładowy kokpit") { store.change { $0 = .demo() } }.buttonStyle(.borderedProminent)
                 }
             }.panel()
-            Text("Belfer 0.1 · macOS 14+ · SwiftUI · dane lokalne").font(.caption).foregroundStyle(.secondary)
+            Text("Belfer 0.2 · macOS 14+ · SwiftUI · dane lokalne").font(.caption).foregroundStyle(.secondary)
         }
     }
 }
