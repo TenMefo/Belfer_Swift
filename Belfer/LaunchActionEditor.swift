@@ -35,19 +35,23 @@ struct LaunchActionEditor: View {
                         Button("Wybierz folder…") { pickFolder() }
                     }
                     if item.kind == .command {
-                        Toggle("Uruchamiaj z uprawnieniami administratora", isOn: $item.administrator)
+                        Toggle("Proces działający w tle (np. npm run dev)", isOn: Binding(get: { item.managed ?? false }, set: { item.managed = $0; if $0 { item.administrator = false } }))
+                        if item.managed == true { TextField("Adres strony serwera", text: Binding(get: { item.serviceURL ?? "" }, set: { item.serviceURL = $0 })) }
+                        Toggle("Uruchamiaj z uprawnieniami administratora", isOn: $item.administrator).disabled(item.managed == true)
                         Text("macOS wyświetli własne okno uwierzytelnienia. Belfer nie przechowuje hasła. Polecenie powinno kończyć działanie po wykonaniu zadania; limit oczekiwania wynosi 3 minuty.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Section("Przypięcie") {
-                    Toggle("Pokaż przycisk na kokpicie", isOn: $item.pinned)
+                    SubjectPicker(selection: $item.subjectID).onChange(of: item.subjectID) { _, _ in item.topicID = nil; item.lessonID = nil }
+                    Text("Bez wybranego przedmiotu akcja jest ogólna. XAMPP przypisz np. do tworzenia stron.").font(.caption).foregroundStyle(.secondary)
+                    Toggle("Pokaż przycisk na kokpicie tego przedmiotu", isOn: $item.pinned)
                     Picker("Temat", selection: $item.topicID) {
                         Text("Bez powiązania z tematem").tag(nil as UUID?)
-                        ForEach(store.data.topics) { Text($0.title).tag(Optional($0.id)) }
+                        ForEach(store.data.topics.filter { item.subjectID == nil || $0.subjectID == item.subjectID }) { Text($0.title).tag(Optional($0.id)) }
                     }
                     Picker("Termin lekcji", selection: $item.lessonID) {
                         Text("Bez powiązania z terminem").tag(nil as UUID?)
-                        ForEach(store.data.lessons.sorted { $0.start < $1.start }) { lesson in
+                        ForEach(store.data.lessons.filter { item.subjectID == nil || store.data.subjectID(for: $0) == item.subjectID }.sorted { $0.start < $1.start }) { lesson in
                             Text("\(store.data.className(lesson.classID)) · \(lesson.start.formatted(date: .abbreviated, time: .shortened)) · \(store.data.title(lesson))").tag(Optional(lesson.id))
                         }
                     }

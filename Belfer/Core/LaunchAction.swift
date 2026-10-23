@@ -17,6 +17,9 @@ struct LaunchAction: Identifiable, Codable, Equatable {
     var administrator = false
     var pinned = true
     var withMaterials = false
+    var subjectID: UUID?
+    var managed: Bool?
+    var serviceURL: String?
     var topicID: UUID?
     var lessonID: UUID?
 
@@ -36,6 +39,7 @@ struct LaunchAction: Identifiable, Codable, Equatable {
               arguments.allSatisfy({ !$0.contains("\0") }), !folder.contains("\0"),
               folder.isEmpty || folder.hasPrefix("/")
         else { throw DataError.invalid("Podaj nazwę akcji i pełną ścieżkę programu (od /). Folder także musi mieć pełną ścieżkę.") }
+        if managed == true && (kind != .command || administrator) { throw DataError.invalid("Proces w tle musi być poleceniem bez uprawnień administratora.") }
         if kind == .application {
             guard executable.lowercased().hasSuffix(".app"), !administrator else {
                 throw DataError.invalid("Wybierz pakiet .app. Uprawnienia administratora dotyczą poleceń, nie aplikacji.")

@@ -38,6 +38,8 @@ struct LessonDetail: View {
     @EnvironmentObject var store: WorkspaceStore
     @EnvironmentObject var runner: ActionRunner
     @State private var editingAction: LaunchAction?
+    @State private var tools = false
+    @State private var pack = false
     var id: UUID
     var edit: (Lesson) -> Void
     @State private var finish = false
@@ -53,7 +55,7 @@ struct LessonDetail: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack { Label("Karta lekcji", systemImage: "book.closed").font(.headline); Spacer(); Button("Edytuj") { edit(lesson) } }
                 Text(store.data.title(lesson)).font(.system(size: 25, weight: .bold, design: .rounded))
-                Text("\(store.data.className(lesson.classID)) · \(lesson.duration) minut · sala \(lesson.room.isEmpty ? "—" : lesson.room)").foregroundStyle(.secondary)
+                Text("\(store.data.subjectName(store.data.subjectID(for: lesson))) · \(store.data.className(lesson.classID)) · \(lesson.blockCount ?? 1) lekcji · \(lesson.duration) minut · sala \(lesson.room.isEmpty ? "—" : lesson.room)").foregroundStyle(.secondary)
                 HStack {
                     StatusPill(status: lesson.status)
                     Spacer()
@@ -82,8 +84,8 @@ struct LessonDetail: View {
                 }
                 HStack {
                     Button("Otwórz materiały uczniów", systemImage: "arrow.up.right.square") {
-                        runner.run(store.data.actions(for: lesson).filter { $0.withMaterials }) { store.openStudentMaterials(materials) }
-                    }.disabled(runner.busy || (materials.filter { !$0.teacherOnly }.isEmpty && !store.data.actions(for: lesson).contains { $0.withMaterials }))
+                        runner.run(store.data.actions(for: lesson).filter { action in action.withMaterials || store.data.profiles.first(where: { $0.id == lesson.profileID })?.actionIDs.contains(action.id) == true }) { store.openStudentMaterials(materials) }
+                    }.disabled(runner.busy || (materials.filter { !$0.isPrivate }.isEmpty && lesson.profileID == nil && !store.data.actions(for: lesson).contains { $0.withMaterials }))
                     Button("Tryb lekcji", systemImage: "play.rectangle") { openWindow(id: "teaching", value: lesson.id) }
                 }
                 VStack(alignment: .leading, spacing: 12) {
@@ -92,18 +94,18 @@ struct LessonDetail: View {
                         Spacer()
                         Menu("Dodaj akcję") {
                             Button("VS Code i folder projektu…") {
-                                var action = LaunchAction.vscode(); action.lessonID = lesson.id; action.withMaterials = true
+                                var action = LaunchAction.vscode(); action.subjectID = store.data.subjectID(for: lesson); action.lessonID = lesson.id; action.withMaterials = true
                                 editingAction = action
                             }
                             Button("Start XAMPP…") {
-                                var action = LaunchAction.xampp("start"); action.lessonID = lesson.id; action.withMaterials = true
+                                var action = LaunchAction.xampp("start"); action.subjectID = store.data.subjectID(for: lesson); action.lessonID = lesson.id; action.withMaterials = true
                                 editingAction = action
                             }
                             Button("Zatrzymaj XAMPP…") {
-                                var action = LaunchAction.xampp("stop"); action.lessonID = lesson.id
+                                var action = LaunchAction.xampp("stop"); action.subjectID = store.data.subjectID(for: lesson); action.lessonID = lesson.id
                                 editingAction = action
                             }
-                            Button("Własna akcja…") { var action = LaunchAction(); action.lessonID = lesson.id; editingAction = action }
+                            Button("Własna akcja…") { var action = LaunchAction(); action.subjectID = store.data.subjectID(for: lesson); action.lessonID = lesson.id; editingAction = action }
                         }.fixedSize()
                     }
                     ForEach(store.data.actions(for: lesson)) { action in
@@ -115,6 +117,17 @@ struct LessonDetail: View {
                         }
                     }
                     if runner.busy { ProgressView("\(runner.currentName)…").controlSize(.small) }
+                }
+                if lesson.profileID != nil { Button("Uruchom profil środowiska") { runner.run(store.data.actions(for: lesson).filter { action in store.data.profiles.first(where: { $0.id == lesson.profileID })?.actionIDs.contains(action.id) == true }) }.disabled(runner.busy) }
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack { Button("Plan i kontynuacja") { tools = true }; Button("Pakiet ucznia ZIP") { pack = true } }
+                    HStack {
+                        Button("Wklej link") { store.pasteLink(to: lesson.id) }
+                        Button("Kontekst do ChatGPT / Gemini") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(store.data.aiContext(lesson), forType: .string) }
+                    }
+                    if let previous = store.data.previousLesson(before: lesson) { Button("Otwórz ostatnią lekcję klasy") { edit(previous) } }
+                    ForEach(materials.filter { $0.role == .starter && !$0.isPrivate }) { resource in Button("Nowa kopia: \(resource.name)") { store.copyStarter(resource) } }
+                    Text("Przeciągnij tutaj pliki, foldery lub linki, aby przypiąć je do lekcji.").font(.caption).foregroundStyle(.secondary)
                 }
                 if !lesson.notes.isEmpty { detailSection("Notatki nauczyciela", text: lesson.notes) }
                 if !lesson.nextSteps.isEmpty { detailSection("Co dalej", text: lesson.nextSteps) }
@@ -130,6 +143,9 @@ struct LessonDetail: View {
                     Button(role: .destructive) { delete = true } label: { Image(systemName: "trash") }.help("Usuń ten termin lekcji")
                 }
             }.panel()
+                .dropDestination(for: URL.self) { urls, _ in store.addDroppedURLs(urls, to: lesson.id); return true }
+                .sheet(isPresented: $tools) { LessonToolsView(lesson: lesson) }
+                .sheet(isPresented: $pack) { StudentPackView(lesson: lesson) }
                 .quickLookPreview($preview)
                 .sheet(item: $editingAction) { LaunchActionEditor(item: $0) }
                 .sheet(isPresented: $finish) {
@@ -168,7 +184,7 @@ struct ResourceRow: View {
                     Text(resource.name).font(.subheadline.bold())
                     Text(resource.kind.rawValue).font(.caption).foregroundStyle(.secondary)
                 }
-                if resource.teacherOnly { Image(systemName: "lock.fill").foregroundStyle(.orange).help("Tylko dla nauczyciela") }
+                if resource.isPrivate { Image(systemName: "lock.fill").foregroundStyle(.orange).help("Tylko dla nauczyciela") }
                 Spacer()
                 if resource.kind == .file, let preview { Button("Podgląd", action: preview) }
                 Button("Otwórz") { store.open(resource) }
@@ -209,7 +225,7 @@ struct TeachingWindow: View {
             TeachingView(
                 title: store.data.title(lesson),
                 exercise: store.data.topics.first(where: { $0.id == lesson.topicID })?.exercise ?? "",
-                resources: store.data.materials(lesson).filter { !$0.teacherOnly },
+                resources: store.data.materials(lesson).filter { !$0.isPrivate },
                 close: { dismissWindow(id: "teaching", value: id) }
             )
         } else {

@@ -3,10 +3,11 @@ import SwiftUI
 import AppKit
 
 enum Destination: String, CaseIterable, Identifiable {
-    case today = "Dzisiaj", week = "Tydzień", classes = "Klasy", topics = "Rozkłady", materials = "Materiały", launch = "Uruchamianie", inbox = "Do zrobienia", settings = "Ustawienia"
+    case today = "Dzisiaj", subjects = "Przedmioty", week = "Tydzień", classes = "Klasy", topics = "Rozkłady", materials = "Materiały", launch = "Uruchamianie", inbox = "Do zrobienia", settings = "Ustawienia"
     var id: String { rawValue }
     var symbol: String {
         switch self {
+        case .subjects: return "books.vertical"
         case .today: return "square.grid.2x2"
         case .week: return "calendar"
         case .classes: return "person.3"
@@ -71,6 +72,7 @@ struct ContentView: View {
                         else {
                             switch destination ?? .today {
                             case .today: dashboard
+                            case .subjects: SubjectsView()
                             case .week: WeekView(date: $date, editing: $editing, selectedLesson: $selectedLesson)
                             case .classes: ClassesView(editing: $editing)
                             case .topics: TopicsView(editing: $editing)
@@ -97,6 +99,7 @@ struct ContentView: View {
         .alert("Belfer", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK") { store.error = nil }
         } message: { Text(store.error ?? "") }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in runner.stopAll() }
         .onReceive(NotificationCenter.default.publisher(for: .belferSearch)) { _ in searchFocused = true }
     }
 
@@ -112,7 +115,7 @@ struct ContentView: View {
                 Spacer()
                 DatePicker("Dzień", selection: $date, displayedComponents: .date).fixedSize()
             }
-            if !store.data.actions.filter({ $0.pinned }).isEmpty {
+            if !dashboardActions.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Szybkie uruchamianie").font(.headline)
@@ -122,7 +125,7 @@ struct ContentView: View {
                         Button("Zarządzaj") { destination = .launch }
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 190))], alignment: .leading, spacing: 10) {
-                        ForEach(store.data.actions.filter { $0.pinned }) { RunActionButton(action: $0) }
+                        ForEach(dashboardActions) { RunActionButton(action: $0) }
                     }
                 }.panel()
             }
@@ -133,9 +136,9 @@ struct ContentView: View {
                 metric("DO DOPRACOWANIA", value: "\(lessons.filter { $0.status == .planned || ($0.status == .ready && !$0.missing.isEmpty) }.count)", symbol: "pencil.and.outline", color: .orange)
             }
             if store.data.classes.isEmpty {
-                EmptyPanel(title: "Zacznij od swojej pierwszej klasy", message: "Dodaj klasę, utwórz temat i zaplanuj lekcję. Możesz też wczytać przykładowy kokpit.", symbol: "graduationcap")
+                EmptyPanel(title: "Zacznij od przedmiotu i klasy", message: "Dodaj klasę, utwórz temat i zaplanuj lekcję. Możesz też wczytać przykładowy kokpit.", symbol: "graduationcap")
                 HStack {
-                    Button("Dodaj klasę") { editing = .schoolClass(SchoolClass()) }.buttonStyle(.borderedProminent)
+                    Button(store.data.subjects.isEmpty ? "Dodaj przedmiot" : "Dodaj klasę") { if store.data.subjects.isEmpty { destination = .subjects } else { editing = .schoolClass(SchoolClass()) } }.buttonStyle(.borderedProminent)
                     if store.data == Workspace() { Button("Zobacz przykład") { _ = store.change { $0 = .demo() } } }
                 }
             } else if lessons.isEmpty {
@@ -153,6 +156,13 @@ struct ContentView: View {
                     }
                 }
             }
+            DisclosureGroup("Przygotowanie najbliższych 7 dni") {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(store.data.lessons.filter { $0.start >= Calendar.current.startOfDay(for: date) && $0.start < date.addingTimeInterval(7 * 86400) && $0.status != .completed && $0.status != .cancelled }.sorted { $0.start < $1.start }) { lesson in
+                        Button("\(lesson.start.formatted(date: .abbreviated, time: .shortened)) · \(store.data.className(lesson.classID)) · \(lesson.missing.isEmpty ? "przygotowanie odhaczone" : lesson.missing.joined(separator: ", "))") { self.date = lesson.start; selectedLesson = lesson.id }
+                    }
+                }.padding(.top, 12)
+            }.panel()
             let pending = store.data.tasks.filter { !$0.done && ($0.due.map { Calendar.current.startOfDay(for: $0) <= Calendar.current.startOfDay(for: date) } ?? true) }
             if !pending.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
@@ -161,6 +171,12 @@ struct ContentView: View {
                 }.panel()
             }
         }
+    }
+    private var dashboardActions: [LaunchAction] {
+        let lessons = store.data.lessons(on: date)
+        let lesson = lessons.first { $0.id == selectedLesson } ?? lessons.first
+        let subject = lesson.flatMap { store.data.subjectID(for: $0) }
+        return store.data.actions.filter { $0.pinned && ($0.subjectID == nil || $0.subjectID == subject) }
     }
     private func metric(_ label: String, value: String, symbol: String, color: Color) -> some View {
         HStack {
