@@ -6,23 +6,31 @@ struct LaunchActionsView: View {
     @EnvironmentObject var runner: ActionRunner
     @State private var editing: LaunchAction?
     @State private var deleting: LaunchAction?
+    @State private var subject: UUID?
+    @State private var profileEditor = false
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
                 PageHeading(eyebrow: "Uruchamianie", title: "Środowisko gotowe jednym kliknięciem.", subtitle: "Aplikacje, projekty i obsługa usług — bez przepisywania poleceń.")
                 Menu("Dodaj akcję") {
                     Button("Aplikacja…") { editing = LaunchAction() }
-                    Button("Visual Studio Code…") { editing = .vscode() }
+                    Button("Visual Studio Code…") { var action = LaunchAction.vscode(); action.subjectID = subject; editing = action }
+                    Button("Serwer React / Vite…") { var action = LaunchAction(name: "Serwer Vite", kind: .command, executable: "/opt/homebrew/bin/npm", arguments: ["run", "dev"]); action.subjectID = subject; action.managed = true; action.serviceURL = "http://localhost:5173"; editing = action }
                     Button("Własne polecenie…") { editing = LaunchAction(kind: .command) }
                     Divider()
                     ForEach(["start", "stop", "restart", "status"], id: \.self) { operation in
-                        Button(LaunchAction.xampp(operation).name + "…") { editing = .xampp(operation) }
+                        Button(LaunchAction.xampp(operation).name + "…") { var action = LaunchAction.xampp(operation); action.subjectID = subject; editing = action }
                     }
                 }.fixedSize()
             }
+            if store.data.actions.contains(where: { $0.subjectID == nil && $0.executable.lowercased().contains("xampp") }) {
+                Text("Starsze skróty XAMPP wymagają przypisania przedmiotu. Otwórz ich edycję, wybierz przedmiot i ponownie przypnij przyciski do kokpitu.").font(.callout).foregroundStyle(.orange).panel()
+            }
+            SubjectPicker(selection: $subject)
             HStack {
-                Button("Dodaj przyciski XAMPP", systemImage: "server.rack") { addXampp() }
-                Button("Dodaj VS Code") { editing = .vscode() }
+                Button("Profile środowiska") { profileEditor = true }
+                Button("Dodaj przyciski XAMPP", systemImage: "server.rack") { addXampp() }.disabled(subject == nil)
+                Button("Dodaj VS Code") { var action = LaunchAction.vscode(); action.subjectID = subject; editing = action }
                 Spacer()
                 Button("Pokaż wynik poleceń", systemImage: "terminal") { runner.showingOutput = true }
             }
@@ -31,7 +39,7 @@ struct LaunchActionsView: View {
             if store.data.actions.isEmpty {
                 EmptyPanel(title: "Dodaj pierwszą akcję", message: "Dla XAMPP możesz od razu utworzyć przyciski start, stop, restart i status. Przy VS Code wybierz też folder projektu.", symbol: "play.circle")
             }
-            ForEach(store.data.actions) { action in
+            ForEach(store.data.actions.filter { subject == nil || $0.subjectID == subject }) { action in
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Image(systemName: action.symbol).font(.title2).foregroundStyle(.indigo)
@@ -59,15 +67,16 @@ struct LaunchActionsView: View {
             }
         }
         .sheet(item: $editing) { LaunchActionEditor(item: $0) }
+        .sheet(isPresented: $profileEditor) { ProfilesView(subjectID: subject) }
         .confirmationDialog("Usunąć przypiętą akcję? Nie spowoduje to zatrzymania aplikacji ani usług.", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Usuń akcję", role: .destructive) {
-                if let id = deleting?.id { store.change { $0.actions.removeAll { $0.id == id } } }
+                if let id = deleting?.id { store.change { data in data.actions.removeAll { $0.id == id }; for i in data.profiles.indices { data.profiles[i].actionIDs.removeAll { $0 == id } } } }
                 deleting = nil
             }
         }
     }
     private func scope(_ action: LaunchAction) -> String {
-        var labels = [action.kind.rawValue]
+        var labels = [action.kind.rawValue, action.subjectID == nil ? "Ogólna" : store.data.subjectName(action.subjectID)]
         if let id = action.topicID { labels.append(store.data.topics.first { $0.id == id }?.title ?? "Temat") }
         if let id = action.lessonID, let lesson = store.data.lessons.first(where: { $0.id == id }) { labels.append("\(store.data.className(lesson.classID)) · \(lesson.start.formatted(date: .abbreviated, time: .shortened))") }
         if action.withMaterials { labels.append("razem z materiałami") }
@@ -76,8 +85,8 @@ struct LaunchActionsView: View {
     private func addXampp() {
         store.change { data in
             for operation in ["start", "stop", "restart", "status"] {
-                let action = LaunchAction.xampp(operation)
-                if !data.actions.contains(where: { $0.kind == .command && $0.executable == action.executable && $0.arguments == action.arguments }) {
+                var action = LaunchAction.xampp(operation); action.subjectID = subject
+                if !data.actions.contains(where: { $0.kind == .command && $0.executable == action.executable && $0.arguments == action.arguments && $0.subjectID == subject }) {
                     data.actions.append(action)
                 }
             }
@@ -88,9 +97,14 @@ struct RunActionButton: View {
     @EnvironmentObject var runner: ActionRunner
     var action: LaunchAction
     var body: some View {
-        Button { runner.run([action]) } label: {
-            Label(action.name, systemImage: action.symbol)
-        }.disabled(runner.busy).help(action.displayCommand)
+        HStack {
+            Button { runner.run([action]) } label: { Label(action.name, systemImage: action.symbol) }.disabled(runner.busy || runner.running.contains(action.id)).help(action.displayCommand)
+            if action.managed == true {
+                Button { runner.stopService(action.id) } label: { Image(systemName: "stop.fill") }.disabled(!runner.running.contains(action.id)).help("Zatrzymaj serwer i jego procesy potomne")
+                Button("Log") { runner.showServiceLog(action) }
+                if let address = action.serviceURL, let url = URL(string: address), ["http", "https"].contains(url.scheme ?? "") { Link("Strona", destination: url) }
+            }
+        }
     }
 }
 struct ActionOutputView: View {

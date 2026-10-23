@@ -1,103 +1,111 @@
-# Belfer — centrum dowodzenia nauczyciela
+# Belfer 0.3 — centrum dowodzenia nauczyciela
 
-Natywna aplikacja macOS w SwiftUI. Plan dnia, rozkład materiału, prezentacje, projekty i notatki w jednym miejscu. Interfejs po polsku, bez logowania do Belfra, z lokalnym zapisem danych.
+Natywna aplikacja macOS w SwiftUI. Dane lokalne, interfejs po polsku, bez konta Belfer i zewnętrznych bibliotek. **macOS 14+**, projekt Xcode 16+ lub Swift Package ze Swift 5.9+.
 
-## Uruchomienie na MacBooku
+## Uruchomienie
 
-Wymagania: **macOS 14 Sonoma lub nowszy**, **Xcode 16 lub nowszy** (Swift 5.9+ dla Swift Package). Projekt nie wymaga bibliotek zewnętrznych ani kluczy API.
+```bash
+git clone https://github.com/TenMefo/Belfer_Swift.git
+cd Belfer_Swift
+open Belfer.xcodeproj
+```
 
-1. Pobierz repozytorium lub wykonaj:
-   ```bash
-   git clone https://github.com/TenMefo/Belfer_Swift.git
-   cd Belfer_Swift
-   open Belfer.xcodeproj
-   ```
-2. W Xcode wybierz schemat **MyApp**, urządzenie **My Mac** i kliknij **Run / ⌘R**.
-3. Jeśli Xcode prosi o podpis: w **Signing & Capabilities** wybierz swój Team albo lokalne podpisywanie **Sign to Run Locally**. Zewnętrzny zespół deweloperski nie jest zapisany w projekcie.
-4. Dodaj klasę albo wybierz **Zobacz przykład** na kokpicie.
+W Xcode: schemat **MyApp**, urządzenie **My Mac**, **⌘R**. W razie potrzeby ustaw lokalne podpisywanie **Sign to Run Locally** lub swój Team.
 
-Alternatywnie w Terminalu:
+Alternatywnie:
 
 ```bash
 swift run Belfer
-```
-
-Aby utworzyć samodzielną aplikację:
-
-```bash
 bash scripts/build-app.sh
 open build/Belfer.app
 ```
 
-Możesz następnie przenieść `build/Belfer.app` do folderu **Aplikacje**. Skrypt buduje aplikację dla architektury bieżącego Maca i podpisuje ją lokalnie (ad hoc). To nie jest wersja notaryzowana przez Apple. Archiwum z Actions jest budowane dla architektury runnera, nie jako universal binary.
+`build/Belfer.app` możesz przenieść do Aplikacji. Paczka jest podpisana lokalnie (ad hoc), bez notaryzacji Apple. Budowa lokalna odpowiada architekturze Twojego Maca; artefakt Actions odpowiada architekturze runnera (Apple Silicon). Paczkę znajdziesz w **Actions → macOS build and tests → Belfer-macOS**.
 
-## Pierwszy dzień z Belfrem
+## Organizacja 0.3: przedmiot → rozkład → temat → lekcja
 
-1. **Klasy** → dodaj klasę, przedmiot i kwalifikację. Dla różnych przedmiotów tej samej klasy utwórz osobne wpisy.
-2. **Rozkłady** → dodaj tematy, scenariusze, zadania i wspólne materiały.
-3. **Tydzień** → dodaj stałe godziny → **Wypełnij z szablonu**. Ponowne kliknięcie nie dubluje istniejących terminów dla tej samej klasy i godziny. Przesunięty termin może wymagać ręcznego odwołania pierwotnej godziny przed ponownym generowaniem.
-4. Otwórz termin → **Edytuj** → przypisz temat, salę i dodatkowe materiały.
-5. **Dzisiaj → Przygotuj jutro** pokazuje jutrzejsze lekcje i braki w przygotowaniu.
-6. Po lekcji → **Zakończ lekcję** → zapisz, gdzie skończyliście. Notatkę zobaczysz na kolejnej lekcji tej samej klasy i przedmiotu.
+1. **Przedmioty** → dodaj przedmiot, np. Tworzenie stron i aplikacji internetowych.
+2. **Klasy** → dodaj klasę i wybierz przedmiot. Ta sama klasa dla innego przedmiotu ma osobny wpis i historię.
+3. **Rozkłady** → najpierw wybierz przedmiot, następnie jego rozkład. Dodaj rozkład ręcznie lub zaimportuj Excel.
+4. Dodaj tematy, ich kolejność, godziny, scenariusze i zadania. Temat należy do jednego przedmiotu i rozkładu.
+5. W edycji lekcji wybierz **przedmiot**, klasę tego przedmiotu, rozkład i temat. Lista nie miesza tematów innych przedmiotów.
+6. **Uruchamianie** → wybierz przedmiot i przypisz jego skróty oraz profile środowiska.
 
-Dane przykładowe są ilustracją działania; aplikacja nie pobiera Twoich rzeczywistych plików, rozmów ani planu.
+Przedmiot ma trwały identyfikator, więc zmiana jego nazwy nie zrywa powiązań. Aplikacja odrzuca zapis tematu, profilu lub skrótu, który nie pasuje do przedmiotu lekcji. Ogólne skróty bez przypisania są dostępne niezależnie od przedmiotu; nie należy zostawiać XAMPP jako ogólnego, jeśli ma służyć tylko jednemu przedmiotowi.
 
-## Dostępne funkcje
+## Kokpit i planowanie
 
-- Kokpit wybranego dnia, „Przygotuj jutro”, statusy i lista kontrolna przygotowania.
-- Plan tygodnia, stały szablon, generowanie terminów, zmiana daty i wykrywanie kolizji.
-- Klasy i przedmioty: liczba zrealizowanych terminów, czas lekcji, ostatni temat i notatka.
-- Wspólne tematy z liczbą godzin, scenariuszem, zadaniem i zasobami.
-- Niezależny postęp każdej klasy, również przy wspólnych materiałach.
-- Pliki i foldery projektów przypinane przez systemowe okno; zakładki macOS pomagają odnaleźć przeniesione pliki.
-- Podgląd obsługiwanych dokumentów przez Quick Look i otwieranie w programach domyślnych.
-- Rozmowy ChatGPT/Gemini, strony, wiadomości: własne nazwy, linki i instrukcje.
-- „Tylko dla nauczyciela”: materiał pomijany przez zbiorcze otwieranie i tryb lekcji. Nie jest to szyfrowanie ani kontrola dostępu do pliku.
-- Tryb lekcji w osobnym oknie z dużym poleceniem i materiałami uczniów. Możesz przeciągnąć to okno na projektor albo udostępniać tylko to okno. Kokpit zachowuje prywatne notatki.
-- Zadania/pomysły, przypisanie do klasy, terminy, oznaczanie jako wykonane.
-- Wyszukiwanie `⌘K` w klasach, tematach, lekcjach, notatkach, zadaniach i nazwach/instrukcjach zasobów. Wyszukiwarka nie indeksuje wnętrza plików.
-- Kopiowanie tematu do Librusa i polecenia dla uczniów.
-- Import CSV z podsumowaniem i pomijaniem duplikatów temat + przedmiot.
-- Automatyczny atomowy zapis, poprzedni poprawny stan oraz eksport/przywracanie kopii JSON z walidacją.
+- Dzisiaj / jutro / dowolny dzień, lista lekcji i brakujących przygotowań.
+- Rozwijany podgląd przygotowania najbliższych 7 dni oraz zadania do wykonania.
+- Stały plan godzin, generowanie tygodnia bez dublowania tej samej klasy i godziny, oznaczanie kolizji.
+- **Blok 1–10 lekcji** w jednym terminie, wspólne materiały i scenariusz; domyślnie 45 min na godzinę. Czas całego bloku można dostosować.
+- **Plan i kontynuacja**: kopia lekcji na wybraną datę, kontynuacja z notatką „co dalej”, przesunięcie kolejnych niezrealizowanych terminów klasy/przedmiotu o liczbę dni.
+- Punkty kontrolne w bloku zapisują się z godziną w notatkach.
+- Ostatni zrealizowany temat i notatka klasy, szybkie otwarcie jego edycji.
+- Zakończenie lekcji zapisuje postęp; kartkówki, wycieczki i zastępstwa można opisywać oraz zmieniać ręcznie. Przesuwanie nie oblicza kalendarza świąt ani zastępstw automatycznie.
 
-## Import rozkładu z Excela
+Zmiana szablonu godzin nie zmienia już utworzonych terminów. Po przesunięciu terminu ponowne generowanie tygodnia może odtworzyć pierwotną godzinę; odwołaj ją albo usuń według potrzeb. Powiązanie kontynuacji zachowuje temat i materiały; nie wycina automatycznie części scenariusza.
 
-W Excelu przygotuj arkusz z kolumnami `temat`, `przedmiot`, `godziny`, następnie zapisz jako **CSV UTF-8**. Obsługiwane są separatory `;` i `,`, BOM, cudzysłowy, średniki oraz nowe linie wewnątrz cytowanych pól.
+## Excel i CSV: mapowanie oraz podgląd zmian
 
-```csv
-temat;przedmiot;godziny
-Checkbox, radio i select;Tworzenie stron i aplikacji internetowych;2
-JSX i komponenty;Tworzenie aplikacji webowych;2
-```
+W **Rozkłady** wybierz przedmiot → **Import Excel / CSV**:
 
-`temat` jest wymagany. Pominięta kolumna `godziny` oznacza 1. Jeśli kolumna istnieje, wartości muszą być liczbami całkowitymi 1–1000. Kolumna `przedmiot` jest opcjonalna; jej tekst powinien odpowiadać przedmiotowi wpisanemu przy klasie. Przykład: `examples/rozklad.csv`.
+1. Wskaż `.xlsx` lub CSV UTF-8.
+2. Wybierz arkusz, wiersz nagłówków, kolumnę tematu i opcjonalnie godzin.
+3. Wybierz istniejący rozkład albo nazwę nowego.
+4. Kliknij **Porównaj z rozkładem**. Zobaczysz nowe i zmienione tematy.
+5. Kliknij **Zastosuj zmiany**.
 
-Import **dodaje nowe tematy**, nie nadpisuje istniejących. Zmiany rozkładu edytuj w aplikacji. Bezpośredni import `.xlsx`, mapowanie dowolnych kolumn i porównywanie wersji nie są jeszcze zaimplementowane.
+Godziny muszą być liczbami całkowitymi 1–1000. Bez kolumny godzin przyjmowana jest 1. CSV obsługuje separator `;` lub `,`, BOM, pola cytowane i nowe linie w cytowanych polach. XLSX obsługuje wiele arkuszy, shared strings, inline strings, tekst i liczby; dla formuł odczytuje wartość zapisaną w pliku, bez przeliczania. Zapisz i przelicz arkusz w Excelu przed importem. Format `.xls` i pliki chronione hasłem nie są obsługiwane.
 
-## Integracje — rzeczywisty zakres wersji 0.2
+Dopasowanie aktualizacji następuje po nazwie tematu **wewnątrz wybranego rozkładu**. Materiały, scenariusz i identyfikator istniejącego tematu pozostają. Zmiana nazwy jest nowym tematem. Tematy nieobecne w pliku są zachowywane — import nie usuwa ich. Dane trafiają wyłącznie do wybranego przedmiotu; kolumny z nazwami innych przedmiotów w pliku nie zmieniają tego wyboru.
 
-| Narzędzie | Co działa |
-| --- | --- |
-| Librus | Skrót do strony i kopiowanie tematu. Bez logowania/synchronizacji danych dziennika. |
-| ChatGPT / Gemini | Prywatne linki do rozmów otwierane w przeglądarce. Bez pobierania historii ani generowania AI. |
-| Poczta | `mailto:`, `message:` oraz pliki `.eml`. Bez pobierania skrzynki. |
-| Excel | Import CSV UTF-8. Bez odczytu `.xlsx`. |
-| Projekty | Otwieranie folderu w wybranej aplikacji, np. VS Code, oraz przypinane polecenia z argumentami. |
+## Środowiska, aplikacje, XAMPP i serwery React
 
-Nie potrzebujesz publicznego linku do rozmowy — przypnij jej zwykły adres i korzystaj z zalogowanej przeglądarki. Dla wiadomości Apple Mail można przypiąć adres `message:` z identyfikatorem wiadomości; inne aplikacje mogą go nie obsługiwać.
+**Uruchamianie**: wybierz przedmiot → **Dodaj przyciski XAMPP**. Powstaną start/stop/restart/status przypisane do tego przedmiotu. Domyślny program: `/Applications/XAMPP/xamppfiles/xampp` (klasyczna instalacja macOS, nie XAMPP-VM). Zmień ścieżkę w edycji, jeśli instalacja jest inna. Belfer nie instaluje ani nie konfiguruje XAMPP.
 
-## Dane i kopie
+Start/stop/restart korzystają z systemowego uwierzytelnienia administratora przez AppleScript. Nie dodawaj `sudo`. Hasło nie jest przechowywane przez Belfra. Status domyślnie działa bez administratora; możesz zmienić tę opcję dla swojej instalacji.
 
-Dane trafiają do `~/Library/Application Support/Belfer/workspace.json`. Po każdym kolejnym poprawnym zapisie poprzedni stan jest zachowywany jako `workspace.previous.json`. Ustawienia → **Pokaż folder danych** otwiera właściwą lokalizację.
+**VS Code**: wybierz `.app` i folder projektu. Nie trzeba instalować polecenia `code` w PATH. Możesz użyć innego edytora lub aplikacji.
 
-- Błąd odczytu blokuje zapis i nie nadpisuje uszkodzonego pliku.
-- Przywracanie kopii wymaga potwierdzenia. Przed zastąpieniem bieżący plik zostaje zachowany pod unikalną nazwą.
-- Kopie JSON zawierają notatki, ścieżki i zakładki plików, więc przechowuj je jak własne materiały nauczyciela.
-- Prezentacje i projekty pozostają poza kopią — wykonuj również ich backup.
-- Aplikacja desktopowa działa bez App Sandbox, aby oba sposoby uruchamiania miały jednakowy dostęp do wskazanych zasobów. Materiałów nie wysyła na serwer; otwieranie zewnętrznych linków odbywa się przez domyślne aplikacje.
-- Wersja 0.2 jest przeznaczona do jednego procesu aplikacji naraz; jednoczesne uruchomienie kilku kopii nie ma mechanizmu scalania zmian.
+**Profile środowiska**: wybierz przedmiot, nazwij zestaw i zaznacz akcje, np. VS Code i start XAMPP. Wybierz profil w edycji lekcji. Przycisk profilu uruchamia zestaw; otwarcie materiałów również uruchamia akcje profilu. Kolejność odpowiada kolejności akcji, a błąd przerywa zestaw. Akcje w profilu muszą być ogólne lub przypisane do jego przedmiotu.
 
-## Rozwój i sprawdzanie
+**Serwer React / Vite**: preset korzysta z `/opt/homebrew/bin/npm` i argumentów `run`, `dev`, adresu `http://localhost:5173`. Wybierz folder projektu, ustaw faktyczną lokalizację npm i adres strony. Node/npm oraz zależności projektu muszą być zainstalowane. Opcja **Proces działający w tle** dodaje osobne przyciski startu, zatrzymania, logu i strony. Serwer działa do zatrzymania; wyłączenie Belfra wysyła sygnał zakończenia do uruchomionych przez niego procesów. Belfer nie przejmuje procesów uruchomionych wcześniej poza aplikacją.
+
+Polecenia jednorazowe mają limit 3 minut. Procesy w tle nie mają tego limitu i nie mogą żądać administratora. Program i argumenty mają osobne pola, więc spacje/apostrofy w ścieżkach są przekazywane dosłownie. Dla operatorów powłoki wybierz `/bin/zsh`, argument `-lc` i treść polecenia w kolejnym wierszu. Nie zapisuj haseł/tokenów w akcjach.
+
+Skróty przedmiotu pokazują się przy jego lekcjach i na kokpicie po wybraniu jednej z nich; nie pojawiają się przy innych przedmiotach. Akcja może być dodatkowo ograniczona do tematu lub terminu. Opcja „razem z materiałami” uruchamia ją po kliknięciu przycisku otwarcia materiałów. Akcje nie startują przy samym wczytaniu danych. XAMPP zatrzymujesz osobnym przyciskiem.
+
+Wynik kod 0 potwierdza zakończenie polecenia, nie stan usług. Użyj Status XAMPP lub logu serwera. Usługi mogą startować z opóźnieniem. Po przekroczeniu czasu polecenia sprawdź stan usług — zakończenie programu uruchamiającego nie musi wyłączyć usług.
+
+## Materiały, uczniowie i AI
+
+- Pliki, foldery i linki przypinasz ręcznie lub przeciągasz na kartę lekcji. Przycisk **Wklej link** lub wklejenie na karcie lekcji przypina adres ze schowka.
+- Materiał ma rolę: materiał ucznia, projekt startowy albo rozwiązanie nauczyciela. Rozwiązanie jest zawsze wykluczone z pakietów i widoku ucznia, także po odznaczeniu zwykłej opcji prywatności.
+- **Nowa kopia projektu startowego** tworzy nowy folder o unikalnej nazwie, bez nadpisywania źródła. Folder docelowy musi być poza projektem.
+- **Pakiet ucznia ZIP**: wybierz zasoby. ZIP zawiera polecenie, wybrane pliki/foldery i odnośniki. Kopiowanie pomija `.git`, `node_modules`, `.build`, `.env*`, `.DS_Store` i dowiązania symboliczne. Oznacz rozwiązania jako prywatne i sprawdź zawartość folderu projektu, który wybierasz do udostępnienia.
+- Tryb lekcji w osobnym oknie na projektor zawiera zadanie i materiały uczniów, bez notatek nauczyciela.
+- Zadanie do sprawdzenia można powiązać z klasą, terminem i folderem prac.
+- **Kontekst do ChatGPT / Gemini** kopiuje do schowka temat, czas, klasę, notatki, scenariusz i nazwy materiałów. Nie odczytuje plików ani nie wysyła danych do AI. Przed wklejeniem możesz usunąć prywatne uwagi.
+- Wyszukiwanie `⌘K` obejmuje nazwy, tematy, notatki i przypięcia; nie indeksuje wnętrza plików.
+
+## Kopie i aktualizacja z 0.1 / 0.2
+
+Dane: `~/Library/Application Support/Belfer/workspace.json`. Poprzedni poprawny stan: `workspace.previous.json`. Zapis jest atomowy; uszkodzony plik blokuje dalszy zapis. Kopia JSON obejmuje dane i przypięcia, bez plików materiałów.
+
+Wersja 0.3 odczytuje stare kopie i przypisuje dawne nazwy przedmiotów do identyfikatorów, tworzy rozkłady i zachowuje terminy, notatki oraz materiały. Dawne nieprawidłowo przypisane tematy lekcji są kopiowane do właściwego przedmiotu, aby nie zgubić materiałów. Stare ogólne skróty pozostają ogólne; przypisz im przedmiot w Uruchamianiu. Starsze globalne skróty XAMPP są odpinane z kokpitu i automatycznego otwierania materiałów do czasu wybrania przedmiotu; same definicje pozostają. Nie otwieraj zapisanych danych 0.3 w starszym Belfrze.
+
+**Ustawienia → Automatyczne kopie**: wybierz folder. Po zapisie powstaje kopia; zachowywanych jest ostatnich 30 plików o prefiksie `Belfer-auto-`. Niedostępny folder kopii zgłasza osobny komunikat; lokalny zapis nadal pozostaje poprawny. Wykonuj również kopie samych prezentacji i projektów.
+
+Aplikacja działa lokalnie bez App Sandbox. Pliki otwierają się w programach domyślnych. Przeznaczona jest do jednej uruchomionej kopii Belfra naraz; brak scalania równoległych zapisów.
+
+## Integracje i granice
+
+Librus: odnośnik i kopiowanie tematu, bez synchronizacji dziennika. Poczta: przypięte pliki i linki `mailto:` / `message:`, bez odczytu skrzynki. ChatGPT/Gemini: prywatne adresy rozmów i kontekst do skopiowania, bez pobierania historii i generowania przez API.
+
+Rzeczywiste uruchamianie XAMPP, edytorów, portów Vite, systemowego okna administratora i projektora wymaga sprawdzenia na Macu z odpowiednim oprogramowaniem. CI sprawdza kompilację i automatyczne testy, bez takiej instalacji użytkownika.
+
+## Testy
 
 ```bash
 swift test
@@ -105,33 +113,4 @@ bash scripts/build-app.sh
 xcodebuild -project Belfer.xcodeproj -scheme MyApp -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-Workflow `.github/workflows/macos.yml` sprawdza testy, kompilację Swift Package i projektu Xcode oraz udostępnia archiwum aplikacji w artefaktach **Actions → macOS build and tests → Belfer-macOS**.
-
-Źródła:
-- `Belfer/Core/` — modele, reguły planowania, walidacja i parser CSV.
-- `Belfer/WorkspaceStore.swift` — zapis, kopie, import i obsługa zasobów macOS.
-- `Belfer/*Views.swift`, `ContentView.swift`, `Editors.swift` — interfejs SwiftUI.
-- `Tests/BelferTests/` — parser, plan tygodnia, kolizje, powiązania i odporność zapisu.
-
-Dalszy plan: bezpośredni Excel z mapowaniem kolumn i różnicami; kalendarz/święta/wyjątki; dopiero po weryfikacji możliwości dostawców odczyt poczty i Librusa. Te funkcje nie są oznaczane jako działające w obecnej wersji.
-
-## Uruchamianie aplikacji, VS Code i XAMPP (0.2)
-
-**Uruchamianie → Dodaj przyciski XAMPP** dodaje cztery przypięcia: **Uruchom**, **Zatrzymaj**, **Restartuj**, **Status**. Domyślny program to `/Applications/XAMPP/xamppfiles/xampp`. Jeśli Twoja instalacja ma inną lokalizację, zmień ją w edycji każdej akcji. Dotyczy to klasycznej instalacji XAMPP na macOS; XAMPP-VM wymaga innego sposobu sterowania. Preset nie instaluje XAMPP ani nie zmienia konfiguracji serwerów.
-
-Start/stop/restart używają systemowego okna uprawnień administratora przez AppleScript. **Nie wpisuj `sudo` w polu programu ani argumentów**. Belfer nie prosi o hasło w swoim formularzu i go nie zapisuje. Anulowanie systemowego okna jest pokazywane jako nieudane wykonanie polecenia. Status domyślnie działa bez podwyższonych uprawnień; możesz je włączyć, jeżeli Twoja instalacja ich wymaga.
-
-**Dodaj VS Code** → wybierz `Visual Studio Code.app` i folder projektu → zapisz. Uruchomienie korzysta z macOS `open`, więc instalacja polecenia `code` w terminalu nie jest wymagana. Możesz przypiąć również inną aplikację `.app`.
-
-Przypięcia można:
-- pokazać jako przyciski na kokpicie;
-- powiązać ze wspólnym tematem albo konkretnym terminem lekcji;
-- włączyć **Uruchamiaj razem z otwieraniem materiałów lekcji**.
-
-W karcie lekcji sekcja **Środowisko lekcji → Dodaj akcję** pozwala szybko przygotować VS Code z folderem oraz start/stop XAMPP. Dla startu XAMPP i VS Code ta ścieżka domyślnie włącza dołączenie do materiałów; dla zatrzymania pozostawia oddzielny przycisk. Przyciski zestawu wykonują pasujące akcje w kolejności ich dodania, po czym otwierają materiały. Pierwszy błąd przerywa zestaw. Samo przypięcie na kokpicie nie dołącza akcji do lekcji. Brak powiązania przy włączonej opcji „razem z materiałami” oznacza wszystkie lekcje.
-
-Własne polecenia mają osobne pola **program**, **argumenty (jeden na wiersz)** i **folder roboczy**. Program musi mieć pełną ścieżkę. Zwykłe argumenty są przekazywane bez interpretacji powłoki. Dla celowego użycia operatorów takich jak `&&` wybierz `/bin/zsh`, wpisz `-lc` w pierwszym wierszu argumentów, a całą treść polecenia w drugim. Nie zapisuj w poleceniach haseł ani tokenów.
-
-**Wynik** pokazuje kod zakończenia, standardowe wyjście i błędy z bieżącej sesji. Kod 0 oznacza zakończenie polecenia; nie jest ciągłym monitoringiem usług. Użyj **Status XAMPP**, aby sprawdzić serwery. Działanie XAMPP zależy od zainstalowanej wersji i dostępności portów. Polecenia mają limit 3 minut; po przekroczeniu limitu sprawdź stan usług, ponieważ zatrzymanie procesu uruchamiającego nie musi zatrzymać serwera. Nie używaj tych akcji do procesów wymagających stałego interaktywnego terminala, np. `npm run dev` na pierwszym planie.
-
-Akcje nie uruchamiają się przy starcie Belfra, imporcie kopii ani zakończeniu lekcji. XAMPP zatrzymujesz osobnym przyciskiem. Polecenia i ich przypięcia są zapisywane w kopii JSON. Kopie 0.1 bez akcji nadal się otwierają; do kopii 0.2 używaj nowej wersji aplikacji, ponieważ stara aplikacja nie zachowa nowych pól.
+Workflow macOS wykonuje wszystkie te kroki i udostępnia ZIP aplikacji. Testy obejmują m.in. migrację, izolację przedmiotów, import XLSX/CSV, aktualizacje rozkładu, kontynuację i przesuwanie, kopiowanie plików oraz start/log/zatrzymanie procesu w tle.

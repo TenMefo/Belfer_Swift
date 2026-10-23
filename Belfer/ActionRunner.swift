@@ -88,6 +88,10 @@ enum ActionExecutor {
 
 @MainActor
 final class ActionRunner: ObservableObject {
+    @Published var running: Set<UUID> = []
+    var services: [UUID: Process] = [:]
+    var serviceLogs: [UUID: URL] = [:]
+    var serviceHandles: [UUID: FileHandle] = [:]
     @Published private(set) var busy = false
     @Published private(set) var currentName = ""
     @Published private(set) var results: [UUID: ActionResult] = [:]
@@ -105,6 +109,11 @@ final class ActionRunner: ObservableObject {
                 currentName = action.name
                 transcript += "\n▶ \(action.name)\n\(action.displayCommand)\n"
                 do {
+                    if action.managed == true {
+                        try startService(action)
+                        transcript += "Uruchomiono proces w tle. Log i zatrzymanie dostępne przy przycisku.\n"
+                        continue
+                    }
                     let result = try await Task.detached(priority: .userInitiated) { try ActionExecutor.run(action) }.value
                     results[action.id] = result
                     transcript += (result.output.isEmpty ? (action.kind == .application && result.succeeded ? "Wysłano żądanie otwarcia aplikacji." : "Brak komunikatów programu.") : result.output)
@@ -120,5 +129,72 @@ final class ActionRunner: ObservableObject {
             }
             afterSuccess?()
         }
+    }
+}
+
+extension ActionRunner {
+    func startService(_ action: LaunchAction) throws {
+        if services[action.id]?.isRunning == true { return }
+        let action = try ActionExecutor.resolved(action)
+        try? serviceHandles[action.id]?.close()
+        if let old = serviceLogs[action.id] { try? FileManager.default.removeItem(at: old) }
+        guard action.kind == .command && !action.administrator else { throw DataError.invalid("Serwer musi być poleceniem bez administratora.") }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: action.executable)
+        process.arguments = action.arguments
+        if !action.folder.isEmpty { process.currentDirectoryURL = URL(fileURLWithPath: action.folder) }
+        var environment = ProcessInfo.processInfo.environment
+        environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+        process.environment = environment
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("belfer-service-\(UUID().uuidString).log")
+        FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        let handle = try FileHandle(forWritingTo: url)
+        process.standardOutput = handle; process.standardError = handle; process.standardInput = FileHandle.nullDevice
+        process.terminationHandler = { [weak self] process in
+            let code = process.terminationStatus
+            Task { @MainActor in
+                guard let self else { return }
+                self.running.remove(action.id)
+                self.results[action.id] = ActionResult(exitCode: code, output: self.serviceOutput(action.id))
+            }
+        }
+        do { try process.run(); services[action.id] = process; serviceLogs[action.id] = url; serviceHandles[action.id] = handle; running.insert(action.id) }
+        catch { try? handle.close(); try? FileManager.default.removeItem(at: url); throw error }
+    }
+    func serviceOutput(_ id: UUID) -> String {
+        guard let url = serviceLogs[id], let handle = try? FileHandle(forReadingFrom: url) else { return "Brak logu procesu." }
+        defer { try? handle.close() }
+        let size = (try? handle.seekToEnd()) ?? 0
+        try? handle.seek(toOffset: size > 65_536 ? size - 65_536 : 0)
+        return String(decoding: (try? handle.read(upToCount: 65_536)) ?? Data(), as: UTF8.self)
+    }
+    func showServiceLog(_ action: LaunchAction) {
+        transcript = "\(action.name)\n\(serviceOutput(action.id))"; showingOutput = true
+    }
+    func stopService(_ id: UUID) {
+        guard let process = services[id], process.isRunning else { running.remove(id); return }
+        // Zatrzymujemy także potomków npm, żeby proces node nie pozostawał na porcie.
+        let descendants = Self.childProcesses(process.processIdentifier)
+        for pid in descendants.reversed() { kill(pid, SIGTERM) }
+        process.terminate()
+        running.remove(id)
+        Task {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            for pid in descendants where kill(pid, 0) == 0 { kill(pid, SIGKILL) }
+            if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+        }
+    }
+    func stopAll() { for id in Array(services.keys) { stopService(id) } }
+    private static func childProcesses(_ parent: Int32) -> [Int32] {
+        let process = Process(); let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/ps"); process.arguments = ["-axo", "pid=,ppid="]; process.standardOutput = pipe
+        guard (try? process.run()) != nil else { return [] }
+        let output = pipe.fileHandleForReading.readDataToEndOfFile(); process.waitUntilExit()
+        let pairs = String(decoding: output, as: UTF8.self).split(separator: "\n").compactMap { line -> (Int32, Int32)? in
+            let values = line.split(whereSeparator: { $0.isWhitespace }).compactMap { Int32($0) }; return values.count == 2 ? (values[0], values[1]) : nil
+        }
+        var result: [Int32] = [], queue = [parent]
+        while let pid = queue.first { queue.removeFirst(); let children = pairs.filter { $0.1 == pid && !result.contains($0.0) }.map { $0.0 }; result += children; queue += children }
+        return result
     }
 }

@@ -96,6 +96,7 @@ struct TaskRow: View {
                     if let due = item.due { Text("Do \(due.formatted(date: .abbreviated, time: .omitted))").foregroundStyle(!item.done && Calendar.current.startOfDay(for: due) < Calendar.current.startOfDay(for: Date()) ? Color.orange : Color.secondary) }
                 }.font(.caption)
             }
+            if let folder = item.workFolder, !folder.isEmpty { Button("Prace") { NSWorkspace.shared.open(URL(fileURLWithPath: folder)) } }
             Spacer()
             Button("Edytuj", action: edit)
         }
@@ -143,6 +144,8 @@ struct SettingsView: View {
                     Button("Przywróć kopię…") { store.restoreBackup() }
                     Button("Pokaż folder danych") { NSWorkspace.shared.selectFile(store.fileURL.path, inFileViewerRootedAtPath: store.fileURL.deletingLastPathComponent().path) }
                 }
+                AutomaticBackupSettings()
+                if let notice = store.backupNotice { Text(notice).foregroundStyle(.orange) }
                 Text(store.fileURL.path).font(.caption.monospaced()).textSelection(.enabled).foregroundStyle(.secondary)
                 Text("Przed każdym zapisem zachowywany jest poprzedni poprawny stan: workspace.previous.json. Warto też regularnie eksportować kopię poza ten komputer.").font(.caption).foregroundStyle(.secondary)
             }.panel()
@@ -151,17 +154,31 @@ struct SettingsView: View {
                 LabeledContent("Librus", value: "Odnośnik + kopiowanie tematu; bez automatycznej synchronizacji")
                 LabeledContent("ChatGPT / Gemini", value: "Prywatne odnośniki do konkretnych rozmów")
                 LabeledContent("Poczta", value: "Linki mailto: / message: lub przypięte pliki .eml")
-                LabeledContent("Excel", value: "Import tematów przez CSV UTF-8")
+                LabeledContent("Excel", value: "XLSX / CSV, wybór arkusza i kolumn, podgląd zmian")
                 Text("Treści rozmów i skrzynki nie są pobierane automatycznie. Polecenia uruchomisz przez jawnie skonfigurowane akcje w zakładce Uruchamianie. Pliki otwierają się w domyślnych programach macOS.").font(.caption).foregroundStyle(.secondary)
             }.panel()
             VStack(alignment: .leading, spacing: 14) {
                 Label("Pierwsze kroki", systemImage: "sparkles").font(.title3.bold())
-                Text("1. Dodaj klasy i przedmioty.\n2. Dodaj tematy lub zaimportuj CSV.\n3. Utwórz stały plan i wypełnij tydzień.\n4. Przypisz tematy i materiały do lekcji.\n5. Wieczorem kliknij „Przygotuj jutro”.\n6. Po zajęciach zapisz, na czym skończyliście.")
-                if store.data.classes.isEmpty && store.data.topics.isEmpty && store.data.lessons.isEmpty && store.data.tasks.isEmpty && store.data.resources.isEmpty && store.data.slots.isEmpty && store.data.actions.isEmpty && !store.locked {
+                Text("1. Dodaj przedmioty, a następnie ich klasy.\n2. Dodaj rozkłady i tematy lub zaimportuj XLSX/CSV.\n3. Utwórz stały plan i wypełnij tydzień.\n4. Przypisz tematy i materiały do lekcji.\n5. Wieczorem kliknij „Przygotuj jutro”.\n6. Po zajęciach zapisz, na czym skończyliście.")
+                if store.data.subjects.isEmpty && store.data.classes.isEmpty && store.data.topics.isEmpty && store.data.lessons.isEmpty && store.data.tasks.isEmpty && store.data.resources.isEmpty && store.data.slots.isEmpty && store.data.actions.isEmpty && !store.locked {
                     Button("Wczytaj przykładowy kokpit") { store.change { $0 = .demo() } }.buttonStyle(.borderedProminent)
                 }
             }.panel()
-            Text("Belfer 0.2 · macOS 14+ · SwiftUI · dane lokalne").font(.caption).foregroundStyle(.secondary)
+            Text("Belfer 0.3 · macOS 14+ · SwiftUI · dane lokalne").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct AutomaticBackupSettings: View {
+    @State private var path = AutomaticBackup.folder?.path ?? "Nie wybrano folderu"
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Automatyczne kopie po zapisie (ostatnie 30)").font(.headline)
+            Text(path).font(.caption).textSelection(.enabled)
+            HStack {
+                Button("Wybierz folder kopii…") { AutomaticBackup.choose(); path = AutomaticBackup.folder?.path ?? "Nie wybrano folderu" }
+                Button("Wyłącz") { AutomaticBackup.disable(); path = "Nie wybrano folderu" }
+            }
         }
     }
 }

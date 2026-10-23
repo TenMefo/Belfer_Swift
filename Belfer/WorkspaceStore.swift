@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 final class WorkspaceStore: ObservableObject {
     @Published private(set) var data = Workspace()
     @Published var error: String?
+    @Published var backupNotice: String?
     @Published private(set) var locked = false
     let fileURL: URL
 
@@ -20,7 +21,7 @@ final class WorkspaceStore: ObservableObject {
     static func decode(_ bytes: Data) throws -> Workspace {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(Workspace.self, from: bytes).validated()
+        return try decoder.decode(Workspace.self, from: bytes).normalized().validated()
     }
     static func encode(_ value: Workspace) throws -> Data {
         let encoder = JSONEncoder()
@@ -38,7 +39,7 @@ final class WorkspaceStore: ObservableObject {
     @discardableResult
     private func write(_ value: Workspace) -> Bool {
         do {
-            _ = try value.validated()
+            let value = try value.normalized().validated()
             let bytes = try Self.encode(value)
             try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             // Zachowujemy poprzedni poprawny stan przed atomowym zapisem nowego.
@@ -50,6 +51,8 @@ final class WorkspaceStore: ObservableObject {
             try bytes.write(to: fileURL, options: .atomic)
             data = value
             locked = false
+            do { try AutomaticBackup.save(bytes); backupNotice = nil }
+            catch { backupNotice = "Dane zapisano lokalnie, ale kopia automatyczna nie powstała: \(error.localizedDescription)" }
             return true
         } catch { self.error = "Nie zapisano zmian: \(error.localizedDescription)"; return false }
     }
@@ -130,6 +133,6 @@ final class WorkspaceStore: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
     func openStudentMaterials(_ resources: [Resource]) {
-        for resource in resources where !resource.teacherOnly { open(resource) }
+        for resource in resources where !resource.isPrivate { open(resource) }
     }
 }

@@ -4,6 +4,7 @@ struct SchoolClass: Identifiable, Codable, Equatable {
     var id = UUID()
     var name = ""
     var subject = ""
+    var subjectID: UUID?
     var qualification = ""
     var notes = ""
 }
@@ -12,6 +13,9 @@ struct Topic: Identifiable, Codable, Equatable {
     var id = UUID()
     var title = ""
     var subject = ""
+    var subjectID: UUID?
+    var curriculumID: UUID?
+    var order: Int?
     var hours = 1
     var outline = ""
     var exercise = ""
@@ -27,6 +31,9 @@ struct Lesson: Identifiable, Codable, Equatable {
     var classID: UUID
     var topicID: UUID?
     var start = Date()
+    var blockCount: Int?
+    var continuationOf: UUID?
+    var profileID: UUID?
     var duration = 45
     var room = ""
     var status = LessonStatus.planned
@@ -66,6 +73,7 @@ struct Resource: Identifiable, Codable, Equatable {
     var kind = ResourceKind.file
     var location = ""
     var bookmark: Data?
+    var role: ResourceRole?
     var teacherOnly = false
     var instructions = ""
 }
@@ -73,6 +81,7 @@ struct Resource: Identifiable, Codable, Equatable {
 struct WorkItem: Identifiable, Codable, Equatable {
     var id = UUID()
     var title = ""
+    var workFolder: String?
     var details = ""
     var classID: UUID?
     var due: Date?
@@ -90,7 +99,13 @@ struct WeeklySlot: Identifiable, Codable, Equatable {
 }
 
 struct Workspace: Codable, Equatable {
-    var schemaVersion = 1
+    var schemaVersion = 3
+    var subjectCatalog: [Subject]?
+    var curriculumCatalog: [Curriculum]?
+    var environmentProfiles: [EnvironmentProfile]?
+    var subjects: [Subject] { get { subjectCatalog ?? [] } set { subjectCatalog = newValue } }
+    var curricula: [Curriculum] { get { curriculumCatalog ?? [] } set { curriculumCatalog = newValue } }
+    var profiles: [EnvironmentProfile] { get { environmentProfiles ?? [] } set { environmentProfiles = newValue } }
     var classes: [SchoolClass] = []
     var topics: [Topic] = []
     var lessons: [Lesson] = []
@@ -107,7 +122,8 @@ struct Workspace: Codable, Equatable {
     func className(_ id: UUID) -> String { classes.first { $0.id == id }?.name ?? "Usunięta klasa" }
     func title(_ lesson: Lesson) -> String { topics.first { $0.id == lesson.topicID }?.title ?? "Wybierz temat" }
     func materials(_ lesson: Lesson) -> [Resource] {
-        (topics.first { $0.id == lesson.topicID }?.resources ?? []) + lesson.resources
+        var seen = Set<UUID>()
+        return ((topics.first { $0.id == lesson.topicID }?.resources ?? []) + lesson.resources).filter { seen.insert($0.id).inserted }
     }
     func previousLesson(before lesson: Lesson) -> Lesson? {
         lessons.filter { $0.classID == lesson.classID && $0.start < lesson.start && $0.status == .completed }
@@ -135,7 +151,7 @@ struct Workspace: Codable, Equatable {
         }
     }
     func validated() throws -> Workspace {
-        guard schemaVersion == 1 else { throw DataError.invalid("Nieobsługiwana wersja kopii danych.") }
+        guard schemaVersion == 1 || schemaVersion == 3 else { throw DataError.invalid("Nieobsługiwana wersja kopii danych.") }
         func unique<T: Identifiable>(_ items: [T]) -> Bool where T.ID: Hashable {
             Set(items.map(\.id)).count == items.count
         }
@@ -152,10 +168,38 @@ struct Workspace: Codable, Equatable {
             (action.lessonID == nil || lessons.contains(where: { $0.id == action.lessonID }))
         }) else { throw DataError.invalid("Nieprawidłowe powiązania akcji uruchamiania.") }
         for action in actions { try action.validate() }
+        guard unique(subjects), unique(curricula), unique(profiles), Set(subjects.map { Self.key($0.name) }).count == subjects.count else { throw DataError.invalid("Powtórzone przedmioty lub identyfikatory.") }
+        let subjectIDs = Set(subjects.map(\.id))
+        guard subjects.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
+              curricula.allSatisfy({ subjectIDs.contains($0.subjectID) }),
+              classes.allSatisfy({ $0.subjectID == nil || subjectIDs.contains($0.subjectID!) }),
+              topics.allSatisfy({ topic in
+                  (topic.subjectID == nil || subjectIDs.contains(topic.subjectID!)) &&
+                  (topic.curriculumID == nil || curricula.contains { $0.id == topic.curriculumID && $0.subjectID == topic.subjectID })
+              }),
+              lessons.allSatisfy({ lesson in
+                  (lesson.topicID == nil || topics.contains { $0.id == lesson.topicID && ($0.subjectID == nil || $0.subjectID == subjectID(for: lesson)) }) &&
+                  (lesson.profileID == nil || profiles.contains { $0.id == lesson.profileID && $0.subjectID == subjectID(for: lesson) })
+              }),
+              profiles.allSatisfy({ profile in subjectIDs.contains(profile.subjectID) && profile.actionIDs.allSatisfy { id in actions.contains { $0.id == id && ($0.subjectID == nil || $0.subjectID == profile.subjectID) } } }),
+              actions.allSatisfy({ action in
+                  (action.subjectID == nil || subjectIDs.contains(action.subjectID!)) &&
+                  (action.subjectID == nil || action.topicID == nil || topics.contains { $0.id == action.topicID && $0.subjectID == action.subjectID }) &&
+                  (action.subjectID == nil || action.lessonID == nil || lessons.contains { $0.id == action.lessonID && subjectID(for: $0) == action.subjectID })
+              })
+        else { throw DataError.invalid("Przedmiot, temat, profil lub skrót nie pasują do siebie.") }
         return self
     }
     func actions(for lesson: Lesson) -> [LaunchAction] {
-        actions.filter { $0.lessonID == lesson.id || ($0.topicID != nil && $0.topicID == lesson.topicID) || ($0.topicID == nil && $0.lessonID == nil && $0.withMaterials) }
+        let subject = subjectID(for: lesson)
+        let profileIDs = profiles.first { $0.id == lesson.profileID }?.actionIDs ?? []
+        return actions.filter { action in
+            guard action.subjectID == nil || action.subjectID == subject else { return false }
+            if profileIDs.contains(action.id) { return true }
+            if let id = action.lessonID { return id == lesson.id }
+            if let id = action.topicID { return id == lesson.topicID }
+            return action.subjectID != nil || action.withMaterials
+        }
     }
     static func demo(now: Date = Date()) -> Workspace {
         let web = SchoolClass(name: "4TI", subject: "Tworzenie stron i aplikacji internetowych", qualification: "INF.03")
@@ -165,10 +209,11 @@ struct Workspace: Codable, Equatable {
         let cal = Calendar.current
         let first = cal.date(bySettingHour: 8, minute: 0, second: 0, of: now)!
         let second = cal.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
-        return Workspace(classes: [web, react], topics: [pizza, jsx], lessons: [
+        let value = Workspace(classes: [web, react], topics: [pizza, jsx], lessons: [
             Lesson(classID: web.id, topicID: pizza.id, start: first, room: "204", presentationReady: true),
             Lesson(classID: react.id, topicID: jsx.id, start: second, room: "205")
         ], tasks: [WorkItem(title: "Przygotować pliki startowe do konfiguratora pizzy", classID: web.id)], resources: [Resource(name: "Librus", kind: .website, location: "https://synergia.librus.pl")])
+        return (try? value.normalized()) ?? value
     }
 }
 
