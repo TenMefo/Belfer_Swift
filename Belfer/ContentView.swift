@@ -62,6 +62,7 @@ struct ContentView: View {
                         Button("Poczta") { NSWorkspace.shared.open(URL(string: "mailto:")!) }
                     } label: { Label("Skróty", systemImage: "arrow.up.right.square") }.fixedSize()
                 }.padding(20).background(.bar)
+                if let notice = store.backupNotice { Label(notice, systemImage: "externaldrive.badge.exclamationmark").font(.caption).foregroundStyle(.orange).padding(12) }
                 if store.locked {
                     Label("Dane wymagają przywrócenia kopii w Ustawieniach. Zapis jest zablokowany.", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange).padding(12)

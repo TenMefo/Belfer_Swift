@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 import QuickLook
+import UniformTypeIdentifiers
 
 struct LessonRow: View {
     @EnvironmentObject var store: WorkspaceStore
