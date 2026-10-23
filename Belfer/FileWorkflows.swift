@@ -126,11 +126,14 @@ enum AutomaticBackup {
     static func disable() { UserDefaults.standard.removeObject(forKey: key) }
     static func save(_ data: Data) throws {
         guard let folder else { return }
+        try write(data, to: folder)
+    }
+    static func write(_ data: Data, to folder: URL) throws {
         let name = "Belfer-auto-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString).json"
         try data.write(to: folder.appendingPathComponent(name), options: .atomic)
-        let copies = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey])
+        let copies = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])
             .filter { $0.lastPathComponent.hasPrefix("Belfer-auto-") && $0.pathExtension == "json" }
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
+            .sorted { ((try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) > ((try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast) }
         for old in copies.dropFirst(30) { try? FileManager.default.removeItem(at: old) }
     }
 }

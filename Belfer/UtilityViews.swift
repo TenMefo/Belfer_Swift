@@ -159,7 +159,7 @@ struct SettingsView: View {
             }.panel()
             VStack(alignment: .leading, spacing: 14) {
                 Label("Pierwsze kroki", systemImage: "sparkles").font(.title3.bold())
-                Text("1. Dodaj klasy i przedmioty.\n2. Dodaj tematy lub zaimportuj CSV.\n3. Utwórz stały plan i wypełnij tydzień.\n4. Przypisz tematy i materiały do lekcji.\n5. Wieczorem kliknij „Przygotuj jutro”.\n6. Po zajęciach zapisz, na czym skończyliście.")
+                Text("1. Dodaj przedmioty, a następnie ich klasy.\n2. Dodaj rozkłady i tematy lub zaimportuj XLSX/CSV.\n3. Utwórz stały plan i wypełnij tydzień.\n4. Przypisz tematy i materiały do lekcji.\n5. Wieczorem kliknij „Przygotuj jutro”.\n6. Po zajęciach zapisz, na czym skończyliście.")
                 if store.data.subjects.isEmpty && store.data.classes.isEmpty && store.data.topics.isEmpty && store.data.lessons.isEmpty && store.data.tasks.isEmpty && store.data.resources.isEmpty && store.data.slots.isEmpty && store.data.actions.isEmpty && !store.locked {
                     Button("Wczytaj przykładowy kokpit") { store.change { $0 = .demo() } }.buttonStyle(.borderedProminent)
                 }

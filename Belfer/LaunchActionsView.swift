@@ -23,6 +23,9 @@ struct LaunchActionsView: View {
                     }
                 }.fixedSize()
             }
+            if store.data.actions.contains(where: { $0.subjectID == nil && $0.executable.lowercased().contains("xampp") }) {
+                Text("Starsze skróty XAMPP wymagają przypisania przedmiotu. Otwórz ich edycję, wybierz przedmiot i ponownie przypnij przyciski do kokpitu.").font(.callout).foregroundStyle(.orange).panel()
+            }
             SubjectPicker(selection: $subject)
             HStack {
                 Button("Profile środowiska") { profileEditor = true }

@@ -143,6 +143,7 @@ struct LessonDetail: View {
                     Button(role: .destructive) { delete = true } label: { Image(systemName: "trash") }.help("Usuń ten termin lekcji")
                 }
             }.panel()
+                .onPasteCommand(of: [.url, .utf8PlainText]) { _ in store.pasteLink(to: lesson.id) }
                 .dropDestination(for: URL.self) { urls, _ in store.addDroppedURLs(urls, to: lesson.id); return true }
                 .sheet(isPresented: $tools) { LessonToolsView(lesson: lesson) }
                 .sheet(isPresented: $pack) { StudentPackView(lesson: lesson) }

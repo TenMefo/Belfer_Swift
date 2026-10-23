@@ -68,6 +68,9 @@ extension Workspace {
             for i in value.actions.indices where value.actions[i].subjectID == nil {
                 if let id = value.actions[i].lessonID, let lesson = value.lessons.first(where: { $0.id == id }) { value.actions[i].subjectID = value.subjectID(for: lesson) }
                 else if let id = value.actions[i].topicID { value.actions[i].subjectID = value.topics.first(where: { $0.id == id })?.subjectID }
+                if value.actions[i].subjectID == nil && value.actions[i].executable.lowercased().contains("xampp") {
+                    value.actions[i].pinned = false; value.actions[i].withMaterials = false
+                }
             }
         }
         return value

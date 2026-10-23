@@ -80,7 +80,7 @@ Wynik kod 0 potwierdza zakończenie polecenia, nie stan usług. Użyj Status XAM
 
 ## Materiały, uczniowie i AI
 
-- Pliki, foldery i linki przypinasz ręcznie lub przeciągasz na kartę lekcji. Przycisk **Wklej link** przypina adres ze schowka.
+- Pliki, foldery i linki przypinasz ręcznie lub przeciągasz na kartę lekcji. Przycisk **Wklej link** lub wklejenie na karcie lekcji przypina adres ze schowka.
 - Materiał ma rolę: materiał ucznia, projekt startowy albo rozwiązanie nauczyciela. Rozwiązanie jest zawsze wykluczone z pakietów i widoku ucznia, także po odznaczeniu zwykłej opcji prywatności.
 - **Nowa kopia projektu startowego** tworzy nowy folder o unikalnej nazwie, bez nadpisywania źródła. Folder docelowy musi być poza projektem.
 - **Pakiet ucznia ZIP**: wybierz zasoby. ZIP zawiera polecenie, wybrane pliki/foldery i odnośniki. Kopiowanie pomija `.git`, `node_modules`, `.build`, `.env*`, `.DS_Store` i dowiązania symboliczne. Oznacz rozwiązania jako prywatne i sprawdź zawartość folderu projektu, który wybierasz do udostępnienia.
@@ -93,7 +93,7 @@ Wynik kod 0 potwierdza zakończenie polecenia, nie stan usług. Użyj Status XAM
 
 Dane: `~/Library/Application Support/Belfer/workspace.json`. Poprzedni poprawny stan: `workspace.previous.json`. Zapis jest atomowy; uszkodzony plik blokuje dalszy zapis. Kopia JSON obejmuje dane i przypięcia, bez plików materiałów.
 
-Wersja 0.3 odczytuje stare kopie i przypisuje dawne nazwy przedmiotów do identyfikatorów, tworzy rozkłady i zachowuje terminy, notatki oraz materiały. Dawne nieprawidłowo przypisane tematy lekcji są kopiowane do właściwego przedmiotu, aby nie zgubić materiałów. Stare ogólne skróty pozostają ogólne; przypisz im przedmiot w Uruchamianiu. Nie otwieraj zapisanych danych 0.3 w starszym Belfrze.
+Wersja 0.3 odczytuje stare kopie i przypisuje dawne nazwy przedmiotów do identyfikatorów, tworzy rozkłady i zachowuje terminy, notatki oraz materiały. Dawne nieprawidłowo przypisane tematy lekcji są kopiowane do właściwego przedmiotu, aby nie zgubić materiałów. Stare ogólne skróty pozostają ogólne; przypisz im przedmiot w Uruchamianiu. Starsze globalne skróty XAMPP są odpinane z kokpitu i automatycznego otwierania materiałów do czasu wybrania przedmiotu; same definicje pozostają. Nie otwieraj zapisanych danych 0.3 w starszym Belfrze.
 
 **Ustawienia → Automatyczne kopie**: wybierz folder. Po zapisie powstaje kopia; zachowywanych jest ostatnich 30 plików o prefiksie `Belfer-auto-`. Niedostępny folder kopii zgłasza osobny komunikat; lokalny zapis nadal pozostaje poprawny. Wykonuj również kopie samych prezentacji i projektów.
 

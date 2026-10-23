@@ -107,3 +107,29 @@ final class Version03Tests: XCTestCase {
         XCTAssertFalse(runner.services[action.id]?.isRunning ?? true)
     }
 }
+
+extension Version03Tests {
+    func testStudentArchiveExcludesTeacherSolutions() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let visible = root.appendingPathComponent("zadanie.txt"), secret = root.appendingPathComponent("rozwiazanie.txt")
+        try Data("zadanie".utf8).write(to: visible); try Data("tajne".utf8).write(to: secret)
+        let output = root.appendingPathComponent("uczen.zip")
+        try StudentFiles.archive(resources: [(Resource(name: "Zadanie"), visible), (Resource(name: "Rozwiązanie", role: .solution), secret)], exercise: "Polecenie", to: output)
+        let process = Process(); let pipe = Pipe(); process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip"); process.arguments = ["-Z1", output.path]; process.standardOutput = pipe
+        try process.run(); let listing = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self); process.waitUntilExit()
+        XCTAssertTrue(listing.contains("zadanie.txt")); XCTAssertTrue(listing.contains("Polecenie.txt")); XCTAssertFalse(listing.contains("rozwiazanie.txt"))
+    }
+    @MainActor
+    func testAutomaticBackupRetentionDoesNotRemoveOtherFiles() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Data("inne".utf8).write(to: folder.appendingPathComponent("moje.json"))
+        for _ in 0..<33 { try AutomaticBackup.write(Data("kopia".utf8), to: folder) }
+        let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        XCTAssertEqual(names.filter { $0.hasPrefix("Belfer-auto-") }.count, 30)
+        XCTAssertTrue(names.contains("moje.json"))
+    }
+}
